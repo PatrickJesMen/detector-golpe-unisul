@@ -60,7 +60,7 @@ app.post('/', async (req, res) => {
         3. Random seed to enforce absolute uniqueness: ${randomSeed}
         4. Language: ALL generated text must be in Brazilian Portuguese (pt-BR).
         
-        Return ONLY a raw JSON object with exactly this structure:
+        Return ONLY a valid JSON object with exactly this structure:
         { 
             "id": ${Math.floor(Math.random() * 9000) + 1000}, 
             "tipo": "<choose one: whatsapp, email, sms, rede social, notificacao>", 
@@ -71,53 +71,46 @@ app.post('/', async (req, res) => {
             "classificacao": "<choose either 'golpe' or 'legitimo'>", 
             "explicacao": "<write a brief educational explanation of why this is a scam or why it is safe>", 
             "nivel": "<choose one: facil, medio, dificil>" 
-        }
-        
-        Do NOT wrap the response in markdown blocks (like \`\`\`json). Return raw text only.`;
+        }`;
 
-        // Using gemini-2.0-flash for maximum stability and widespread availability
+        // Using gemini-1.5-flash as it is the most stable and available model for the current SDK
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             contents: prompt,
+            config: {
+                // Force the API to return clean JSON without markdown blocks
+                responseMimeType: "application/json",
+            }
         });
 
-        // FIXED: The new @google/genai SDK uses .text as a property, not a function.
-        let textResponse = typeof response.text === 'function' ? response.text() : response.text;
+        let textResponse = response.text;
         
         if (!textResponse) {
             throw new Error("AI returned an empty response.");
         }
         
-        textResponse = textResponse.trim();
-        
-        // Clean up any markdown formatting (e.g., ```json ... ```) that the AI might still include
+        // Clean up just in case the AI still decides to wrap in markdown despite the config
         textResponse = textResponse.replace(/^```json/gi, '').replace(/```$/g, '').trim();
 
-        // Extract only the JSON object to prevent parsing errors
-        const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+        const parsedJson = JSON.parse(textResponse);
+        parsedJson.isAI = true;
         
-        if (jsonMatch) {
-            const parsedJson = JSON.parse(jsonMatch[0]);
-            parsedJson.isAI = true;
-            return res.status(200).json(parsedJson);
-        } else {
-            throw new Error("Invalid format received from the AI model: " + textResponse);
-        }
+        return res.status(200).json(parsedJson);
 
     } catch (error) {
         console.error("⚠️ AI request failed. Sending fallback security response. Error details:", error.message);
         
-        // GUARANTEED FALLBACK: If the AI fails, we send a valid JSON with status 200 (Success).
-        // This prevents the frontend from crashing and keeps the 20-round flow intact.
+        // GUARANTEED FALLBACK: This will display the EXACT technical error on your website's screen
+        // so we can debug exactly why the Google API is failing.
         return res.status(200).json({
             id: Math.floor(Math.random() * 9000) + 1000,
             tipo: "notificacao",
-            titulo: "Verificação de Segurança",
-            remetente: "Sistema Unisul",
-            conteudo: "Estamos realizando manutenção nos servidores de IA. Por favor, analise esta mensagem como um teste de nivelamento.",
+            titulo: "⚠️ Erro Técnico de Integração",
+            remetente: "Sistema de Debug Unisul",
+            conteudo: "A requisição para a Inteligência Artificial falhou. ERRO RETORNADO: " + error.message,
             link: null,
             classificacao: "legitimo",
-            explicacao: "Mensagem de fallback ativada devido à indisponibilidade temporária do serviço de Inteligência Artificial.",
+            explicacao: "Se você está vendo esta mensagem, tire um print e mande para a equipe técnica. Precisamos saber o erro acima para consertar a API.",
             nivel: "facil",
             isAI: true
         });
