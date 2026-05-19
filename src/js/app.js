@@ -51,7 +51,11 @@ async function carregarIASequencialmente() {
     
     for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
         // Aguarda a requisição atual terminar totalmente antes de passar para a próxima
-        await fetchAIInBackground(aiThemes[i]);
+        try {
+            await fetchAIInBackground(aiThemes[i]);
+        } catch (error) {
+             console.error(`Falha no cenário ${i}:`, error);
+        }
         
         // Dá um "respiro" obrigatório de 4 segundos para a API esfriar e evitar o bloqueio (Rate Limit)
         if (i < TOTAL_AI_ROUNDS - 1) {
@@ -303,16 +307,40 @@ async function fetchAIInBackground(themeContext) {
         });
 
         if (response.ok) {
-            const newScenarioJSON = await response.json();
-            newScenarioJSON.isAI = true;
-            
-            simulador.mensagensUtilizadas.push(newScenarioJSON);
-            console.log(`✅ Cenário IA ID ${newScenarioJSON.id} carregado | Tema: ${themeContext}`);
-            
-            atualizarPontuacao();
+            const textResponse = await response.text();
+            try {
+                 const newScenarioJSON = JSON.parse(textResponse);
+                 newScenarioJSON.isAI = true;
+                
+                 simulador.mensagensUtilizadas.push(newScenarioJSON);
+                 console.log(`✅ Cenário IA ID ${newScenarioJSON.id} carregado | Tema: ${themeContext}`);
+                
+                 atualizarPontuacao();
+            } catch (jsonError) {
+                 console.error("Erro ao analisar a resposta JSON do servidor:", jsonError, textResponse);
+                 throw new Error("Resposta inválida do servidor.");
+            }
+        } else {
+            console.error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+            throw new Error(`Erro do servidor: ${response.status}`);
         }
     } catch (error) {
         console.warn('⚠️ Falha ao buscar serviço de IA:', error);
+        // Se a requisição falhar (ex: CORS, indisponível), adicionamos um fallback no próprio front-end
+        const fallbackId = Math.floor(Math.random() * 9000) + 1000;
+        simulador.mensagensUtilizadas.push({
+            id: fallbackId,
+            tipo: "notificacao",
+            titulo: "⚠️ Verificação de Segurança (Local)",
+            remetente: "Sistema Unisul",
+            conteudo: "Os serviços de Inteligência Artificial estão indisponíveis. Este é um cenário de teste padrão.",
+            link: null,
+            classificacao: "legitimo",
+            explicacao: "Fallback acionado no cliente devido à indisponibilidade do backend.",
+            nivel: "facil",
+            isAI: true
+        });
+        atualizarPontuacao();
     }
 }
 
