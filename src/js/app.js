@@ -12,20 +12,22 @@ const TOTAL_LOCAL_ROUNDS = 10;
 const TOTAL_AI_ROUNDS = 5;
 const MAX_ROUNDS = TOTAL_LOCAL_ROUNDS + TOTAL_AI_ROUNDS;
 
+// ATUALIZADO: Instruções diretas para a IA mesclar tamanhos (curto/longo) e tipos (legítimo/golpe)
 const aiThemes = [
-    "Falso prêmio via Pix",
-    "Problema de entrega nos Correios",
-    "Clonagem de WhatsApp familiar",
-    "Falsa oferta de emprego",
-    "Aviso urgente do banco"
+    "Golpe: Falso prêmio via SMS (Texto muito curto e direto)",
+    "Legítimo: E-mail da faculdade sobre período de rematrícula (Texto longo e detalhado)",
+    "Golpe: Falsa oferta de emprego no WhatsApp (Texto médio)",
+    "Legítimo: SMS do banco confirmando um agendamento feito pelo usuário (Texto muito curto)",
+    "Golpe: E-mail de falso suporte técnico com ameaça de bloqueio de conta (Texto longo)"
 ];
 
+// ATUALIZADO: Fallbacks com tamanhos variados e mistura de legítimos e golpes
 const fallbackLocais = [
-    { id: 9001, tipo: "email", titulo: "Acesso Suspeito", remetente: "Segurança TI", conteudo: "Identificamos acesso incomum. Valide seus dados: http://validacao-ti.net", link: "http://validacao-ti.net", classificacao: "golpe", explicacao: "Sistemas de TI internos raramente pedem validação por link direto.", nivel: "facil", isAI: true },
-    { id: 9002, tipo: "sms", titulo: "Pacote Retido", remetente: "Entregas BR", conteudo: "Seu pacote foi retido. Pague a taxa de liberação: http://libera-pacote-br.com", link: "http://libera-pacote-br.com", classificacao: "golpe", explicacao: "Taxas de entrega devem ser verificadas no portal oficial dos correios/transportadora.", nivel: "facil", isAI: true },
-    { id: 9003, tipo: "whatsapp", titulo: "Promoção Exclusiva", remetente: "Loja Parceira", conteudo: "Ganhe 80% de desconto hoje usando este link exclusivo: http://promo-loja-vip.net", link: "http://promo-loja-vip.net", classificacao: "golpe", explicacao: "Descontos irreais enviados não solicitados são típicos de phishing.", nivel: "medio", isAI: true },
-    { id: 9004, tipo: "notificacao", titulo: "Atualização de Sistema", remetente: "OS Updater", conteudo: "Novas definições de segurança instaladas com sucesso.", link: null, classificacao: "legitimo", explicacao: "Avisos de sistema sem interação requerida geralmente são seguros.", nivel: "facil", isAI: true },
-    { id: 9005, tipo: "rede social", titulo: "Ajuda Urgente", remetente: "Amigo Próximo", conteudo: "Preciso de um favor urgente. Consegue transferir R$50 pra essa chave pix?", link: null, classificacao: "golpe", explicacao: "Pedidos de dinheiro repentinos em redes sociais são frequentemente contas hackeadas.", nivel: "medio", isAI: true }
+    { id: 9001, tipo: "email", titulo: "Rematrícula Aberta", remetente: "Secretaria Acadêmica", conteudo: "Olá aluno, informamos que o período de rematrícula para o próximo semestre letivo já está aberto. Por favor, acesse o portal do aluno pelo aplicativo oficial da instituição para conferir as disciplinas e realizar a confirmação da sua grade. O prazo se encerra no dia 30. Em caso de dúvidas, procure a coordenação.", link: null, classificacao: "legitimo", explicacao: "Comunicações oficiais sem links externos diretos para login e que orientam o uso do app oficial são legítimas.", nivel: "facil", isAI: true },
+    { id: 9002, tipo: "sms", titulo: "Pacote Retido", remetente: "Entregas BR", conteudo: "Seu pacote foi retido. Pague a taxa: http://libera-pacote-br.com", link: "http://libera-pacote-br.com", classificacao: "golpe", explicacao: "Correios e transportadoras não enviam links suspeitos por SMS para pagamento imediato.", nivel: "facil", isAI: true },
+    { id: 9003, tipo: "whatsapp", titulo: "Reunião de Alinhamento", remetente: "Chefe (João)", conteudo: "Pessoal, lembrando que a nossa reunião de projeto mudou para as 14h na sala 3. Levem os relatórios.", link: null, classificacao: "legitimo", explicacao: "Mensagens cotidianas de trabalho, sem senso de urgência financeira ou links de login, são legítimas.", nivel: "facil", isAI: true },
+    { id: 9004, tipo: "email", titulo: "Conta Suspensa", remetente: "Suporte", conteudo: "Prezado cliente, sua conta foi temporariamente suspensa devido a atividades suspeitas na última madrugada. Para evitar o cancelamento definitivo e a perda de seus dados, você deve realizar a validação de segurança imediatamente. Acesse o link, insira seu CPF, senha e o token para restabelecer o acesso.", link: "http://suporte-validacao-urgente.net", classificacao: "golpe", explicacao: "Senso de urgência extremo, ameaça de perda de dados e links externos pedindo senha/token são sinais clássicos de phishing.", nivel: "medio", isAI: true },
+    { id: 9005, tipo: "whatsapp", titulo: "Ajuda Urgente", remetente: "Mãe", conteudo: "Oi, meu celular estragou e tô usando esse número provisório. Preciso pagar uma conta urgente, faz um pix de R$ 300 pra mim?", link: null, classificacao: "golpe", explicacao: "Urgência e pedido de dinheiro vindo de um 'novo número' é a marca registrada da clonagem de perfil.", nivel: "medio", isAI: true }
 ];
 
 async function iniciarAplicacao() {
