@@ -82,23 +82,37 @@ async function iniciarAplicacao() {
 
 // Função para garantir que a IA seja chamada uma por vez com intervalo seguro
 async function carregarIASequencialmente() {
-    console.log('⏳ Iniciando fila sequencial de requisições para a IA...');
+    console.log('⏳ Iniciando fila de 1 por 1...');
     
     for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
-        try {
-            await fetchAIInBackground(aiThemes[i]);
-        } catch (error) {
-             console.error(`Falha no cenário ${i}:`, error);
-        }
+        // Aguarda a requisição atual terminar totalmente
+        await buscarCenarioUmPorUm(aiThemes[i]);
         
-        // Dá um "respiro" obrigatório de 4 segundos para a API esfriar e evitar o bloqueio (Rate Limit)
+        // Intervalo de segurança de 3 segundos entre chamadas
         if (i < TOTAL_AI_ROUNDS - 1) {
-            console.log(`⏱️ Aguardando 4 segundos de respiro para a API do Google...`);
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            await new Promise(resolve => setTimeout(resolve, 3000));
         }
     }
-    
-    console.log('✅ Fila de IA concluída com sucesso!');
+}
+
+async function buscarCenarioUmPorUm(tema) {
+    try {
+        const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ theme: tema })
+        });
+        
+        if (!response.ok) throw new Error("Erro no servidor");
+        
+        const data = await response.json();
+        data.isAI = true;
+        simulador.mensagensUtilizadas.push(data);
+        console.log(`✅ Cenário [${tema}] carregado com sucesso.`);
+    } catch (e) {
+        console.warn(`⚠️ Erro no tema [${tema}], usando fallback local.`);
+        simulador.mensagensUtilizadas.push(gerarFallbackLocal());
+    }
 }
 
 function exibirErro(message) {
