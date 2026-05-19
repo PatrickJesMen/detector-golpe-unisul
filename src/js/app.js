@@ -3,50 +3,54 @@
    Controls the interface and integrates all functionalities
    ==================================================== */
 
-let app = {
+let appState = {
     isLoaded: false,
     isRunning: false
 };
 
-const TOTAL_LOCAL = 10;
-const TOTAL_IA = 10;
+const TOTAL_LOCAL_ROUNDS = 10;
+const TOTAL_AI_ROUNDS = 10;
+const MAX_ROUNDS = TOTAL_LOCAL_ROUNDS + TOTAL_AI_ROUNDS;
+
+// Array of distinct themes to force the AI to generate unique scenarios
+const aiThemes = [
+    "Falso prêmio via Pix",
+    "Problema de entrega nos Correios",
+    "Clonagem de WhatsApp de familiar",
+    "Falsa oferta de emprego de meio período",
+    "Aviso urgente do banco sobre conta bloqueada",
+    "Notificação do Serasa ou Receita Federal",
+    "Compra não reconhecida no cartão de crédito",
+    "Promoção impossível de loja famosa",
+    "Contato de suporte técnico pedindo senha",
+    "Atualização de segurança obrigatória"
+];
 
 async function iniciarAplicacao() {
     try {
+        console.log('🚀 Starting hybrid system...');
         await dataLoader.carregar();
-        simulador.inicializar(dataLoader.obterMensagens().slice(0, TOTAL_LOCAL));
 
-        // Pré-carrega 10 da IA sem travar o usuário
-        for(let i = 0; i < TOTAL_IA; i++) {
-            fetchAIInBackground();
+        // 1. Load exactly 10 local scenarios
+        const localMessages = dataLoader.obterMensagens().slice(0, TOTAL_LOCAL_ROUNDS);
+        simulador.inicializar(localMessages);
+
+        // 2. Pre-load exactly 10 AI scenarios using the unique themes
+        // Using setTimeout to stagger the requests (1.5s apart) to prevent server/API overload and identical caching
+        for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
+            setTimeout(() => {
+                fetchAIInBackground(aiThemes[i]);
+            }, i * 1500); 
         }
 
+        appState.isLoaded = true;
+        appState.isRunning = true;
+
         carregarProximaMensagem();
+
     } catch (error) {
-        console.error('Erro:', error);
-    }
-}
-
-async function fetchAIInBackground() {
-    try {
-        const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            data.isAI = true;
-            simulador.mensagensUtilizadas.push(data);
-            atualizarPontuacao();
-        }
-    } catch (e) { console.warn("IA indisponível"); }
-}
-
-function proximaMensagem() {
-    if (simulador.indiceAtual >= (TOTAL_LOCAL + TOTAL_IA) - 1) {
-        mostrarTelaDeFim();
-    } else {
-        carregarProximaMensagem();
+        console.error('❌ Error during initialization:', error);
+        exibirErro('Falha ao carregar a aplicação. Certifique-se de que os arquivos estão corretos.');
     }
 }
 
@@ -54,14 +58,7 @@ function exibirErro(message) {
     const simulatorDiv = document.querySelector('.simulator-engine') || document.querySelector('.simulator');
     if (simulatorDiv) {
         simulatorDiv.innerHTML = `
-            <div class="error-message" style="
-                background: #fee2e2;
-                border: 2px solid #ef4444;
-                color: #991b1b;
-                padding: 2rem;
-                border-radius: 8px;
-                text-align: center;
-            ">
+            <div class="error-message" style="background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; padding: 2rem; border-radius: 8px; text-align: center;">
                 <h2 style="margin-bottom: 1rem;">⚠️ Erro ao carregar a aplicação</h2>
                 <p>${message}</p>
             </div>
@@ -87,17 +84,19 @@ function carregarProximaMensagem() {
 }
 
 function exibirMensagem(message) {
-    document.getElementById('tipoMensagem').textContent = message.tipo;
-    document.getElementById('titulo').textContent = message.titulo;
-    document.getElementById('remetente').textContent = message.remetente;
-    document.getElementById('conteudo').textContent = message.conteudo;
+    if (document.getElementById('tipoMensagem')) document.getElementById('tipoMensagem').textContent = message.tipo;
+    if (document.getElementById('titulo')) document.getElementById('titulo').textContent = message.titulo;
+    if (document.getElementById('remetente')) document.getElementById('remetente').textContent = message.remetente;
+    if (document.getElementById('conteudo')) document.getElementById('conteudo').textContent = message.conteudo;
 
     const linkContainer = document.getElementById('linkContainer');
     const linkElement = document.getElementById('link');
 
-    if (message.link) {
-        linkElement.href = message.link;
-        linkElement.textContent = message.link;
+    if (message.link && message.link !== "null") {
+        if (linkElement) {
+            linkElement.href = message.link;
+            linkElement.textContent = message.link;
+        }
         if (linkContainer) linkContainer.style.display = 'block';
     } else {
         if (linkContainer) linkContainer.style.display = 'none';
@@ -124,7 +123,6 @@ function applyDeviceTheme(message) {
     if (document.getElementById('avatarInitialEmail')) document.getElementById('avatarInitialEmail').textContent = initial;
     if (document.getElementById('emailNameSync')) document.getElementById('emailNameSync').textContent = senderName;
 
-    // Atualiza os horários
     const date = new Date();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -136,7 +134,6 @@ function applyDeviceTheme(message) {
     if(document.getElementById('waTime')) document.getElementById('waTime').textContent = formattedTime24;
     if(document.getElementById('emailTime')) document.getElementById('emailTime').textContent = formattedTime12;
     if(document.getElementById('smsTime')) document.getElementById('smsTime').textContent = `Hoje ${formattedTime12}`;
-
 
     viewport.classList.remove('theme-whatsapp', 'theme-email', 'theme-sms', 'theme-social', 'theme-notification');
     
@@ -150,10 +147,8 @@ function applyDeviceTheme(message) {
     } else if (rawType.includes('rede social') || rawType.includes('instagram') || rawType.includes('facebook') || rawType.includes('social')) {
         viewport.classList.add('theme-social');
         if (document.getElementById('contactStatus')) document.getElementById('contactStatus').textContent = '2h atrás • Público';
-    } else if (rawType.includes('notificacao') || rawType.includes('notificação') || rawType.includes('alerta')) {
-        viewport.classList.add('theme-notification');
     } else {
-        viewport.classList.add('theme-sms');
+        viewport.classList.add('theme-notification');
     }
 }
 
@@ -179,7 +174,6 @@ function exibirResultado(result) {
     const isCorrect = result.estaCorreto;
     const cssClass = isCorrect ? 'correto' : 'incorreto';
     
-    // Tradução das respostas
     const correctType = result.respostaCorreta === 'golpe' ? 'um golpe' : 'legítimo';
     const message = isCorrect ? `✅ Correto! Na verdade, isso é ${correctType}.` : `❌ Incorreto! Na verdade, isso era ${correctType}.`;
 
@@ -218,42 +212,49 @@ function resetarInterfaceResposta() {
     const feedbackContent = document.getElementById('feedbackContent');
     if (feedbackContent) feedbackContent.className = 'feedback-banner';
 
-    habilitarBotoeResposta();
+    // Keep buttons disabled initially for 2 seconds to enforce reading
+    desabilitarBotoeResposta();
 }
 
 function desabilitarBotoeResposta() {
-    if (document.getElementById('botaoGolpe')) document.getElementById('botaoGolpe').disabled = true;
-    if (document.getElementById('botaoLegitima')) document.getElementById('botaoLegitima').disabled = true;
+    const btnGolpe = document.getElementById('botaoGolpe');
+    const btnLegitima = document.getElementById('botaoLegitima');
+    if (btnGolpe) btnGolpe.disabled = true;
+    if (btnLegitima) btnLegitima.disabled = true;
 }
 
 function habilitarBotoeResposta() {
-    if (document.getElementById('botaoGolpe')) document.getElementById('botaoGolpe').disabled = false;
-    if (document.getElementById('botaoLegitima')) document.getElementById('botaoLegitima').disabled = false;
+    setTimeout(() => {
+        const btnGolpe = document.getElementById('botaoGolpe');
+        const btnLegitima = document.getElementById('botaoLegitima');
+        if (btnGolpe) btnGolpe.disabled = false;
+        if (btnLegitima) btnLegitima.disabled = false;
+    }, 2000);
 }
 
 function atualizarPontuacao() {
     const acertosEl = document.getElementById('acertos');
     const totalEl = document.getElementById('total');
-    const percentualEl = document.getElementById('percentual');
 
-    const percent = simulador.total > 0 ? Math.round((simulador.acertos / simulador.total) * 100) : 0;
-
+    const maxDisplayTotal = Math.min(simulador.mensagensUtilizadas.length, MAX_ROUNDS);
+    
     if (acertosEl) acertosEl.textContent = simulador.acertos;
-    if (totalEl) totalEl.textContent = simulador.mensagensUtilizadas.length;
-    if (percentualEl) percentualEl.textContent = percent + '%';
+    if (totalEl) totalEl.textContent = maxDisplayTotal;
 }
 
 function proximaMensagem() {
+    // STRICT LIMIT: If we reached the maximum rounds (20), force end screen.
+    if (simulador.indiceAtual >= MAX_ROUNDS) {
+        mostrarTelaDeFim();
+        return;
+    }
+
     const hasMore = simulador.indiceAtual < simulador.mensagensUtilizadas.length;
 
     if (!hasMore) {
         mostrarTelaDeFim();
     } else {
         carregarProximaMensagem();
-        
-        if (Math.random() > 0.5) {
-            fetchAIInBackground();
-        }
     }
 }
 
@@ -265,10 +266,10 @@ function mostrarTelaDeFim() {
     if (feedbackSection) feedbackSection.style.display = 'none';
 
     const finalSection = document.getElementById('finalSection');
-    const percent = simulador.total > 0 ? Math.round((simulador.acertos / simulador.total) * 100) : 0;
+    const finalPercent = MAX_ROUNDS > 0 ? Math.round((simulador.acertos / MAX_ROUNDS) * 100) : 0;
 
     if (document.getElementById('finalAcertos')) document.getElementById('finalAcertos').textContent = simulador.acertos;
-    if (document.getElementById('finalPercentual')) document.getElementById('finalPercentual').textContent = percent + '%';
+    if (document.getElementById('finalPercentual')) document.getElementById('finalPercentual').textContent = finalPercent + '%';
 
     if (finalSection) {
         finalSection.style.display = 'block';
@@ -277,47 +278,40 @@ function mostrarTelaDeFim() {
 }
 
 function reiniciarSimulador() {
-    const messages = dataLoader.obterMensagens();
-    simulador.inicializar(messages);
-
-    const decisionPanel = document.querySelector('.decision-panel');
-    if (decisionPanel) decisionPanel.style.display = 'block';
-    
-    document.getElementById('feedbackSection').style.display = 'none';
-    document.getElementById('finalSection').style.display = 'none';
-
-    carregarProximaMensagem();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Reload page to reset everything perfectly
+    window.location.reload();
 }
 
-async function fetchAIInBackground() {
+async function fetchAIInBackground(themeContext) {
     try {
-        console.log('🤖 Background Engine: Requesting new AI scenario...');
+        console.log(`🤖 Requesting AI scenario with theme: [${themeContext}]`);
         
-        // Replace this URL with your actual Render URL
-        const renderApiUrl = 'https://detector-golpe-unisul.onrender.com/';
-
-      const response = await fetch(renderApiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}) // Adicione um body vazio só para garantir que o POST saia
-      });
+        // Ensure you change this URL to your live Render endpoint!
+        const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ theme: themeContext })
+        });
 
         if (response.ok) {
             const newScenarioJSON = await response.json();
-            
             newScenarioJSON.isAI = true;
             
             simulador.mensagensUtilizadas.push(newScenarioJSON);
-            console.log(`✅ Background Engine: Embedded AI Scenario ID ${newScenarioJSON.id} into queue.`);
+            console.log(`✅ Loaded AI Scenario ID ${newScenarioJSON.id} | Theme: ${themeContext}`);
             
             atualizarPontuacao();
         }
     } catch (error) {
-        console.warn('⚠️ Background Engine: AI service unavailable. The simulator will rely purely on local JSON scenarios.');
+        console.warn('⚠️ AI service fetch failed:', error);
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     iniciarAplicacao();
 });
+
+// Expose functions globally for HTML inline event handlers (onclick)
+window.avaliarMensagem = avaliarMensagem;
+window.proximaMensagem = proximaMensagem;
+window.reiniciarSimulador = reiniciarSimulador;
