@@ -12,7 +12,11 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // Para testes, vamos liberar tudo. Depois você troca pelo seu link do netlify
+    methods: ['POST', 'GET'],
+    allowedHeaders: ['Content-Type']
+}));
 app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
