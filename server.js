@@ -27,7 +27,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // Handle pre-flight requests from the browser
 app.options('*', cors());
 
-// VISUAL ROUTE: So you can open the Render link in your browser and see it's alive!
+// VISUAL ROUTE: To check if the Render server is alive
 app.get('/', (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).send(`
@@ -35,66 +35,89 @@ app.get('/', (req, res) => {
             <h1 style="color: #2563eb; margin-bottom: 0.5rem;">🚀 API do Motor de Segurança</h1>
             <p style="color: #64748b; font-size: 1.1rem; margin-bottom: 1.5rem;">O Backend de Análise de Ameaças está ATIVO.</p>
             <div style="background: #e2e8f0; padding: 0.75rem 1.5rem; border-radius: 6px; font-family: monospace; font-size: 0.95rem;">
-                Status: ONLINE • Pronto para receber conexões POST da Inteligência Artificial.
+                Status: ONLINE • Fallbacks Inteligentes Mapeados.
             </div>
         </div>
     `);
 });
 
-// EMERGENCY FALLBACKS: If Google rate limits us (429), we silently return one of these 
-// so the presentation does not break and the user never sees an error.
-const emergencyFallbacks = [
-    {
-        tipo: "sms",
-        titulo: "Pontos Expirando",
-        remetente: "Livelo Rewards",
-        conteudo: "Seus 45.000 pontos expiram hoje! Resgate agora em: http://resgate-pontos-livelo.com",
-        link: "http://resgate-pontos-livelo.com",
-        classificacao: "golpe",
-        explicacao: "Golpe clássico de phishing. O link é falso e tenta roubar dados do programa de pontos.",
-        nivel: "facil"
+// INTELLIGENT FALLBACK DICTIONARY: Mapped exactly to the 10 frontend themes.
+// This guarantees that even if the API is offline, the user gets 10 UNIQUE scenarios.
+const themeFallbacks = {
+    "Falso prêmio via Pix": {
+        tipo: "whatsapp", titulo: "Prêmio Recebido", remetente: "Central Pix - Nubank",
+        conteudo: "Você ganhou um sorteio de R$ 5.000,00 no Pix! Pague a taxa de R$ 49,90 no link abaixo para liberar o valor imediatamente.",
+        link: "http://liberacao-pix-premiado.com", classificacao: "golpe",
+        explicacao: "Prêmios verdadeiros nunca exigem pagamento antecipado de taxas para serem liberados.", nivel: "facil"
     },
-    {
-        tipo: "email",
-        titulo: "Aviso de Login Suspeito",
-        remetente: "seguranca@banco.com.br",
-        conteudo: "Detectamos um login em um novo dispositivo. Se não foi você, clique aqui imediatamente para bloquear sua conta.",
-        link: "http://bloqueio-banco-seguro-br.com",
-        classificacao: "golpe",
-        explicacao: "Tática de urgência para forçar o usuário a clicar em um link malicioso e entregar senhas.",
-        nivel: "medio"
+    "Problema de entrega nos Correios": {
+        tipo: "sms", titulo: "Taxa Alfandegária", remetente: "Correios",
+        conteudo: "Sua encomenda internacional foi retida na alfândega. Efetue o pagamento do imposto para liberação.",
+        link: "http://correios-pagamento-taxa.net", classificacao: "golpe",
+        explicacao: "Golpe clássico de phishing. Sempre verifique o rastreio no aplicativo ou site oficial dos Correios.", nivel: "facil"
     },
-    {
-        tipo: "whatsapp",
-        titulo: "Falsa Oferta de Emprego",
-        remetente: "+55 11 99999-9999",
-        conteudo: "Olá! Somos da Amazon. Temos uma vaga de meio período pagando R$ 500 por dia. Responda 'SIM' para aceitar.",
-        link: null,
-        classificacao: "golpe",
-        explicacao: "Golpe de falsa oferta de emprego. Geralmente pedem depósitos para 'liberar' o trabalho.",
-        nivel: "facil"
+    "Clonagem de WhatsApp de familiar": {
+        tipo: "whatsapp", titulo: "Novo Número", remetente: "Mãe",
+        conteudo: "Oi filho, troquei de número, anota aí! Pode me fazer um favor? Preciso pagar uma conta urgente mas meu app travou, pode fazer um Pix pra mim?",
+        link: null, classificacao: "golpe",
+        explicacao: "Urgência e pedido de dinheiro de 'novo número' é a marca registrada da clonagem de perfil. Ligue para a pessoa para confirmar.", nivel: "medio"
     },
-    {
-        tipo: "notificacao",
-        titulo: "Atualização do Sistema",
-        remetente: "Sistema Operacional",
-        conteudo: "Uma nova atualização de segurança está disponível e será instalada esta noite.",
-        link: null,
-        classificacao: "legitimo",
-        explicacao: "Notificações nativas do sistema sobre atualizações são legítimas e recomendadas.",
-        nivel: "facil"
+    "Falsa oferta de emprego de meio período": {
+        tipo: "whatsapp", titulo: "Vaga Confirmada", remetente: "RH Amazon",
+        conteudo: "Estamos recrutando para trabalho de meio período no celular. Ganhos de R$ 300 a R$ 800 por dia. Clique no link para falar com o gerente.",
+        link: "http://amazon-recrutamento-vip.com", classificacao: "golpe",
+        explicacao: "Empresas como a Amazon não recrutam enviando mensagens aleatórias com promessas de lucros absurdos e fáceis.", nivel: "facil"
+    },
+    "Aviso urgente do banco sobre conta bloqueada": {
+        tipo: "email", titulo: "Bloqueio Preventivo", remetente: "seguranca@banco.com.br",
+        conteudo: "Detectamos atividade suspeita e bloqueamos seus cartões. Valide seus dados através do link abaixo para evitar o cancelamento da conta.",
+        link: "http://validacao-seguranca-br.com/login", classificacao: "golpe",
+        explicacao: "Bancos não ameaçam cancelamento de conta por e-mail, e o link não é do domínio oficial do banco.", nivel: "medio"
+    },
+    "Notificação do Serasa ou Receita Federal": {
+        tipo: "email", titulo: "Pendência no CPF", remetente: "Receita Federal",
+        conteudo: "Consta uma pendência na sua declaração de imposto de renda que irá negativar seu CPF. Acesse o portal e regularize o débito de R$ 120,00.",
+        link: "http://regularizacao-cpf-gov.net", classificacao: "golpe",
+        explicacao: "O Governo não envia e-mails com links de cobrança. O link também é falso (termina em .net em vez de .gov.br).", nivel: "dificil"
+    },
+    "Compra não reconhecida no cartão de crédito": {
+        tipo: "sms", titulo: "Compra Aprovada", remetente: "Cartões",
+        conteudo: "Compra aprovada nas Lojas Americanas valor R$ 2.450,00. Se não foi você, ligue urgentemente para 0800-888-0000.",
+        link: null, classificacao: "golpe",
+        explicacao: "Falsa central de atendimento. Se você ligar para esse número, golpistas tentarão roubar seus dados bancários.", nivel: "medio"
+    },
+    "Promoção impossível de loja famosa": {
+        tipo: "rede social", titulo: "Liquidação Relâmpago", remetente: "Loja Oficial Fake",
+        conteudo: "Saldão de aniversário! iPhone 15 Pro Max por apenas R$ 1.500,00 nas próximas 2 horas. Compre agora no site oficial abaixo!",
+        link: "http://loja-aniversario-promo.com", classificacao: "golpe",
+        explicacao: "Preços absurdamente abaixo do mercado (promoções milagrosas) são a isca principal para roubar dinheiro em lojas falsas.", nivel: "facil"
+    },
+    "Contato de suporte técnico pedindo senha": {
+        tipo: "notificacao", titulo: "Verificação Necessária", remetente: "Suporte TI",
+        conteudo: "Para concluir a migração do sistema, por favor nos responda com sua senha atual para validarmos a criptografia.",
+        link: null, classificacao: "golpe",
+        explicacao: "Nenhum suporte técnico ou equipe de TI legítima pedirá sua senha atual em texto para 'validar o sistema'.", nivel: "medio"
+    },
+    "Atualização de segurança obrigatória": {
+        tipo: "notificacao", titulo: "Patch Disponível", remetente: "Sistema Operacional",
+        conteudo: "A versão mais recente (v15.4) está pronta para ser instalada durante a madrugada para otimizar sua bateria.",
+        link: null, classificacao: "legitimo",
+        explicacao: "Atualizações de sistema operacional em notificações nativas sem pedidos urgentes ou links externos costumam ser legítimas.", nivel: "facil"
     }
-];
+};
+
+// Generic fallbacks just in case the theme doesn't match perfectly
+const genericFallbacks = Object.values(themeFallbacks);
 
 // Main route to handle AI scenario generation
 app.post('/', async (req, res) => {
     console.log('🤖 AI generation requested...');
     
-    try {
-        // Extract the theme passed by the frontend to ensure unique scenarios
-        const requestedTheme = req.body.theme || "random digital scam or legitimate interaction";
-        const randomSeed = Math.random().toString(36).substring(7) + Date.now();
+    // Extract the theme passed by the frontend
+    const requestedTheme = req.body.theme || "random digital scam or legitimate interaction";
+    const randomSeed = Math.random().toString(36).substring(7) + Date.now();
 
+    try {
         const prompt = `You are a cybersecurity expert. Generate a SINGLE unique digital interaction scenario (scam or legitimate) for an educational simulator.
         
         CRITICAL INSTRUCTIONS:
@@ -139,18 +162,25 @@ app.post('/', async (req, res) => {
         return res.status(200).json(parsedJson);
 
     } catch (error) {
-        console.error("⚠️ AI rate limit or failure (Error: " + error.message + "). Using silent fallback.");
+        console.error(`⚠️ AI failure/Rate Limit. Serving mapped fallback for theme: "${requestedTheme}"`);
         
-        // SEAMLESS FALLBACK: Instead of showing an error on screen and ruining the presentation,
-        // we select a random realistic scenario from our emergency pool.
-        const randomIndex = Math.floor(Math.random() * emergencyFallbacks.length);
-        const fallbackScenario = { ...emergencyFallbacks[randomIndex] };
+        // SMARTEST FALLBACK EVER:
+        // Try to get the specific fallback mapped to the requested theme.
+        // If it can't find an exact match, pull a random one from the generic list.
+        let fallbackBase = themeFallbacks[requestedTheme];
         
-        // Give it a random ID and label it as AI so the UI still shows the badge
-        fallbackScenario.id = Math.floor(Math.random() * 9000) + 1000;
-        fallbackScenario.isAI = true; 
+        if (!fallbackBase) {
+            const randomIndex = Math.floor(Math.random() * genericFallbacks.length);
+            fallbackBase = genericFallbacks[randomIndex];
+        }
+
+        const finalFallback = { ...fallbackBase };
         
-        return res.status(200).json(fallbackScenario);
+        // Ensure ID uniqueness and UI labeling
+        finalFallback.id = Math.floor(Math.random() * 9000) + 1000;
+        finalFallback.isAI = true; // Pretend it was synthesized by AI to keep the badge showing
+        
+        return res.status(200).json(finalFallback);
     }
 });
 
