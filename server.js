@@ -73,9 +73,9 @@ app.post('/', async (req, res) => {
             "nivel": "<choose one: facil, medio, dificil>" 
         }`;
 
-        // Using gemini-1.5-flash as it is the most stable and available model for the current SDK
+        // Upgraded to gemini-2.0-flash to fix the 404 Not Found error from the older model endpoint
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             contents: prompt,
             config: {
                 // Force the API to return clean JSON without markdown blocks
