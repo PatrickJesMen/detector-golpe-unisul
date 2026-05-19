@@ -9,25 +9,19 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
 const app = express();
 
-// Substitua o app.use(cors()) atual por este código:
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+// Configuração de CORS para aceitar qualquer origem
+app.use(cors());
+app.use(express.json());
 
-// Adicione este middleware de segurança extra antes das rotas
+// Middleware manual de CORS para garantir que o navegador não bloqueie
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
     next();
 });
-
-app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
