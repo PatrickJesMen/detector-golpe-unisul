@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,50 +7,113 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="main-app-container">
-        
-        <header class="global-header">
-            <div class="system-badge">Módulo de Simulação de Segurança</div>
-            <h1>Console de Análise de Ameaças</h1>
-            
-            <div id="aiBadge" class="ai-indicator-badge" style="display: none;">
-                ✨ Cenário Sintetizado por IA
-            </div>
-        </header>
 
-        <section class="live-stats-bar">
-            <div class="stat-block">
-                <span class="stat-label">Identificações Corretas</span>
-                <div class="stat-values">
-                    <span id="acertos" class="value-highlight">0</span>
-                    <span class="value-separator">/</span>
-                    <span id="total" class="value-muted">0</span>
+        <!-- ── BARRA DE CONTROLES ──────────────────── -->
+        <div class="controls-bar">
+            <!-- Reduzir fonte -->
+            <div class="tooltip-container">
+                <button class="ctrl-btn" onclick="adjustFontSize(-1)" aria-label="Diminuir tamanho da fonte">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <text x="2" y="18" font-size="14" fill="currentColor" stroke="none" font-weight="700">A</text>
+                        <text x="13" y="22" font-size="10" fill="currentColor" stroke="none" font-weight="700">A</text>
+                        <line x1="4" y1="12" x2="20" y2="12"/>
+                    </svg>
+                    <span class="font-size-display" id="fontSizeDisplay">16</span>
+                </button>
+                <span class="tooltip">Diminuir texto</span>
+            </div>
+
+            <!-- Aumentar fonte -->
+            <div class="tooltip-container">
+                <button class="ctrl-btn" onclick="adjustFontSize(1)" aria-label="Aumentar tamanho da fonte">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <text x="1" y="22" font-size="18" fill="currentColor" stroke="none" font-weight="700">A</text>
+                        <text x="14" y="18" font-size="10" fill="currentColor" stroke="none" font-weight="700">A</text>
+                        <line x1="4" y1="12" x2="20" y2="12"/>
+                        <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                </button>
+                <span class="tooltip">Aumentar texto</span>
+            </div>
+
+            <!-- Dark/Light mode -->
+            <div class="tooltip-container">
+                <button class="ctrl-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Alternar modo escuro">
+                    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                    <span id="themeLabel">Escuro</span>
+                </button>
+                <span class="tooltip">Alternar tema</span>
+            </div>
+        </div>
+
+        <!-- ── HEADER PRINCIPAL ───────────────────── -->
+        <header class="global-header">
+            <div class="header-top-row">
+                <span class="system-badge">Módulo de Simulação</span>
+                <div id="aiBadge" class="ai-indicator-badge">
+                    ✨ Cenário por IA
                 </div>
             </div>
-            <div class="stat-block brand-block">
-                <span class="stat-label">Taxa de Precisão</span>
-                <span id="percentual" class="value-percent">0%</span>
+            <h1>Console de <em>Análise</em><br>de Ameaças</h1>
+            <p class="header-subtitle">Treine sua percepção contra golpes digitais</p>
+        </header>
+
+        <!-- ── ESTATÍSTICAS ───────────────────────── -->
+        <section class="live-stats-bar" aria-label="Pontuação atual">
+            <div class="stat-block">
+                <div class="stat-block-inner">
+                    <span class="stat-label">Corretos</span>
+                    <div class="stat-values">
+                        <span id="acertos" class="value-highlight">0</span>
+                        <span class="value-separator">/</span>
+                        <span id="total" class="value-muted">0</span>
+                    </div>
+                </div>
+                <div class="stat-icon">🎯</div>
+            </div>
+            <div class="stat-block">
+                <div class="stat-block-inner">
+                    <span class="stat-label">Precisão</span>
+                    <span id="percentual" class="value-percent">—</span>
+                </div>
+                <div class="stat-icon stat-icon-danger">📊</div>
             </div>
         </section>
 
+        <!-- Barra de progresso + contador -->
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <div class="scenario-counter">
+                <span class="scenario-label" id="scenarioLabel">Cenário 0 de 20</span>
+                <span id="levelBadge" class="level-badge"></span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- ── SIMULADOR ──────────────────────────── -->
         <main class="simulator-engine">
             
             <div class="meta-data-layer">
                 <span id="tipoMensagem" class="hidden-sys-type"></span>
             </div>
 
+            <!-- Dispositivo simulado -->
             <article class="device-viewport" id="deviceViewport">
                 
                 <div class="os-status-bar">
                     <span class="os-time" id="osTime">10:41</span>
                     <span class="os-icons">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
                     </span>
                 </div>
 
@@ -58,16 +121,13 @@
                     <div class="header-action-left">
                         <span class="back-arrow">‹</span>
                     </div>
-                    
                     <div class="contact-avatar" id="dynamicAvatar">
                         <span id="avatarInitial">U</span>
                     </div>
-                    
                     <div class="contact-info">
-                        <h3 id="remetente" class="contact-name">Remetente Desconhecido</h3>
+                        <h3 id="remetente" class="contact-name">Carregando...</h3>
                         <span class="contact-status" id="contactStatus">online</span>
                     </div>
-                    
                     <div class="header-action-right">
                         <span class="options-dots">⋮</span>
                     </div>
@@ -82,7 +142,7 @@
                                 <span id="avatarInitialEmail">U</span>
                             </div>
                             <div class="email-sender-details">
-                                <span class="email-name" id="emailNameSync">Remetente Desconhecido</span>
+                                <span class="email-name" id="emailNameSync">Remetente</span>
                                 <span class="email-to-me">para mim <span class="dropdown-arrow">▾</span></span>
                             </div>
                             <span class="email-time" id="emailTime">10:41</span>
@@ -95,8 +155,9 @@
                         <div class="message-bubble">
                             <p id="conteudo" class="message-text-content">O conteúdo da mensagem aparecerá aqui...</p>
                             
+                            <!-- Link inline — sem caixa cinza -->
                             <div id="linkContainer" class="attachment-link-box" style="display: none;">
-                                <a id="link" href="#" target="_blank" class="parsed-url"></a>
+                                <a id="link" href="#" target="_blank" rel="noopener noreferrer" class="parsed-url"></a>
                             </div>
                             
                             <span class="whatsapp-bubble-time" id="waTime">10:41</span>
@@ -105,40 +166,47 @@
                 </div>
             </article>
 
+            <!-- ── PAINEL DE DECISÃO ──────────────── -->
             <section class="decision-panel">
-                <h3>Avaliação de Ameaça: Classifique este evento</h3>
+                <h3>Classifique esta mensagem</h3>
                 
                 <div class="action-buttons-grid">
                     <button id="botaoGolpe" class="btn btn-scam" onclick="avaliarMensagem('golpe')">
-                        <span class="btn-icon">⚠️</span> É um Golpe / Phishing
+                        <span class="btn-icon">🚨</span>
+                        É um Golpe
                     </button>
                     <button id="botaoLegitima" class="btn btn-safe" onclick="avaliarMensagem('legitimo')">
-                        <span class="btn-icon">✅</span> É Seguro / Legítimo
+                        <span class="btn-icon">✅</span>
+                        É Legítimo
                     </button>
                 </div>
             </section>
 
-            <section id="feedbackSection" class="feedback-module" style="display: none;">
+            <!-- ── FEEDBACK ───────────────────────── -->
+            <section id="feedbackSection" class="feedback-module" style="display: none;" aria-live="polite">
                 <div id="feedbackContent" class="feedback-banner"></div>
 
                 <div id="explicacaoBox" class="insight-box" style="display: none;">
                     <div class="insight-header">
-                        <span>🛡️</span> <h4>Análise de Segurança</h4>
+                        <span>🛡️</span>
+                        <h4>Análise de Segurança</h4>
                     </div>
                     <p id="explicacao" class="insight-text"></p>
                 </div>
 
                 <button id="proximaMensagem" class="btn-next" onclick="proximaMensagem()">
-                    Avançar para o Próximo Cenário →
+                    Próximo Cenário →
                 </button>
             </section>
 
-            <section id="finalSection" class="completion-module" style="display: none;">
+            <!-- ── TELA FINAL ─────────────────────── -->
+            <section id="finalSection" class="completion-module" style="display: none;" aria-live="polite">
                 <div class="trophy">🏆</div>
-                <h2>Simulação Concluída</h2>
+                <h2>Simulação Concluída!</h2>
+                <p style="color: var(--text-3); font-size: 0.9rem; margin-top: 0.25rem;">Veja como você se saiu</p>
                 <div class="final-stats-grid">
                     <div class="stat-card">
-                        <span>Pontuação Final</span>
+                        <span>Acertos</span>
                         <strong id="finalAcertos">0</strong>
                     </div>
                     <div class="stat-card primary-card">
@@ -146,7 +214,9 @@
                         <strong id="finalPercentual">0%</strong>
                     </div>
                 </div>
-                <button class="btn-restart" onclick="reiniciarSimulador()">Reiniciar Treinamento</button>
+                <button class="btn-restart" onclick="reiniciarSimulador()">
+                    🔄 Reiniciar Treinamento
+                </button>
             </section>
 
         </main>
@@ -155,5 +225,125 @@
     <script src="js/dataLoader.js"></script>
     <script src="js/simulator.js"></script>
     <script src="js/app.js"></script>
+
+    <script>
+    /* ====================================================
+       CONTROLES DE ACESSIBILIDADE & TEMA
+       ==================================================== */
+
+    // ── Tamanho da fonte ──────────────────────────────
+    let currentFontSize = parseInt(localStorage.getItem('fontSize') || '16');
+
+    function applyFontSize() {
+        document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+        const display = document.getElementById('fontSizeDisplay');
+        if (display) display.textContent = currentFontSize;
+        localStorage.setItem('fontSize', currentFontSize);
+    }
+
+    function adjustFontSize(delta) {
+        const min = 14, max = 26;
+        currentFontSize = Math.min(max, Math.max(min, currentFontSize + delta));
+        applyFontSize();
+
+        // Feedback visual no botão
+        const btns = document.querySelectorAll('.ctrl-btn');
+        btns.forEach(b => {
+            b.style.transform = 'scale(0.95)';
+            setTimeout(() => b.style.transform = '', 150);
+        });
+    }
+
+    applyFontSize();
+
+    // ── Tema dark/light ───────────────────────────────
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeButton(savedTheme);
+
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        updateThemeButton(next);
+    }
+
+    function updateThemeButton(theme) {
+        const icon = document.getElementById('themeIcon');
+        const label = document.getElementById('themeLabel');
+        if (!icon || !label) return;
+
+        if (theme === 'dark') {
+            icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            label.textContent = 'Claro';
+        } else {
+            icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            label.textContent = 'Escuro';
+        }
+    }
+
+    // ── Ripple nos botões ─────────────────────────────
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn, .btn-next, .btn-restart');
+        if (!btn || btn.disabled) return;
+
+        const ripple = document.createElement('span');
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+
+        ripple.className = 'ripple';
+        ripple.style.cssText = `
+            width: ${size}px; height: ${size}px;
+            left: ${e.clientX - rect.left - size/2}px;
+            top: ${e.clientY - rect.top - size/2}px;
+        `;
+
+        btn.style.position = 'relative';
+        btn.style.overflow = 'hidden';
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 700);
+    });
+
+    // ── Atualiza progresso e nível ────────────────────
+    function updateProgress() {
+        const fill = document.getElementById('progressFill');
+        const label = document.getElementById('scenarioLabel');
+        const levelBadge = document.getElementById('levelBadge');
+
+        if (!fill || typeof simulador === 'undefined') return;
+
+        const total = simulador.mensagensUtilizadas.length || 20;
+        const current = simulador.indiceAtual || 0;
+        const pct = total > 0 ? (current / total) * 100 : 0;
+
+        if (fill) fill.style.width = pct + '%';
+        if (label) label.textContent = `Cenário ${current} de ${total}`;
+
+        // Nível da mensagem atual
+        const msg = simulador.mensagemAtual;
+        if (msg && levelBadge) {
+            const lvlMap = { facil: ['facil', '🟢 Fácil'], medio: ['medio', '🟡 Médio'], dificil: ['dificil', '🔴 Difícil'] };
+            const [cls, txt] = lvlMap[msg.nivel] || ['', ''];
+            levelBadge.className = `level-badge level-${cls}`;
+            levelBadge.textContent = txt;
+        }
+    }
+
+    // Patch: dispara updateProgress após cada mensagem
+    const _origExibir = window.exibirMensagem;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Aguarda o app.js carregar e sobrescreve exibirMensagem
+        setTimeout(() => {
+            const orig = window.exibirMensagem;
+            if (orig) {
+                window.exibirMensagem = function(msg) {
+                    orig(msg);
+                    updateProgress();
+                };
+            }
+        }, 100);
+    });
+    </script>
 </body>
 </html>
