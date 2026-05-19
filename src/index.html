@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Golpes Digitais - Simulador Educacional</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="main-app-container">
+        
+        <header class="global-header">
+            <div class="system-badge">Módulo de Simulação de Segurança</div>
+            <h1>Console de Análise de Ameaças</h1>
+            
+            <div id="aiBadge" class="ai-indicator-badge" style="display: none;">
+                ✨ Cenário Sintetizado por IA
+            </div>
+        </header>
+
+        <section class="live-stats-bar">
+            <div class="stat-block">
+                <span class="stat-label">Identificações Corretas</span>
+                <div class="stat-values">
+                    <span id="acertos" class="value-highlight">0</span>
+                    <span class="value-separator">/</span>
+                    <span id="total" class="value-muted">0</span>
+                </div>
+            </div>
+            <div class="stat-block brand-block">
+                <span class="stat-label">Taxa de Precisão</span>
+                <span id="percentual" class="value-percent">0%</span>
+            </div>
+        </section>
+
+        <main class="simulator-engine">
+            
+            <div class="meta-data-layer">
+                <span id="tipoMensagem" class="hidden-sys-type"></span>
+            </div>
+
+            <article class="device-viewport" id="deviceViewport">
+                
+                <div class="os-status-bar">
+                    <span class="os-time" id="osTime">10:41</span>
+                    <span class="os-icons">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+                    </span>
+                </div>
+
+                <header class="app-specific-header">
+                    <div class="header-action-left">
+                        <span class="back-arrow">‹</span>
+                    </div>
+                    
+                    <div class="contact-avatar" id="dynamicAvatar">
+                        <span id="avatarInitial">U</span>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <h3 id="remetente" class="contact-name">Remetente Desconhecido</h3>
+                        <span class="contact-status" id="contactStatus">online</span>
+                    </div>
+                    
+                    <div class="header-action-right">
+                        <span class="options-dots">⋮</span>
+                    </div>
+                </header>
+
+                <div class="app-specific-body">
+                    
+                    <div class="email-meta-header">
+                        <h2 id="titulo" class="email-subject-line">Assunto do E-mail</h2>
+                        <div class="email-sender-row">
+                            <div class="contact-avatar small-avatar" id="dynamicAvatarEmail">
+                                <span id="avatarInitialEmail">U</span>
+                            </div>
+                            <div class="email-sender-details">
+                                <span class="email-name" id="emailNameSync">Remetente Desconhecido</span>
+                                <span class="email-to-me">para mim <span class="dropdown-arrow">▾</span></span>
+                            </div>
+                            <span class="email-time" id="emailTime">10:41</span>
+                        </div>
+                    </div>
+
+                    <div class="sms-timestamp" id="smsTime">Hoje 10:41</div>
+
+                    <div class="message-bubble-container">
+                        <div class="message-bubble">
+                            <p id="conteudo" class="message-text-content">O conteúdo da mensagem aparecerá aqui...</p>
+                            
+                            <div id="linkContainer" class="attachment-link-box" style="display: none;">
+                                <a id="link" href="#" target="_blank" class="parsed-url"></a>
+                            </div>
+                            
+                            <span class="whatsapp-bubble-time" id="waTime">10:41</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <section class="decision-panel">
+                <h3>Avaliação de Ameaça: Classifique este evento</h3>
+                
+                <div class="action-buttons-grid">
+                    <button id="botaoGolpe" class="btn btn-scam" onclick="avaliarMensagem('golpe')">
+                        <span class="btn-icon">⚠️</span> É um Golpe / Phishing
+                    </button>
+                    <button id="botaoLegitima" class="btn btn-safe" onclick="avaliarMensagem('legitimo')">
+                        <span class="btn-icon">✅</span> É Seguro / Legítimo
+                    </button>
+                </div>
+            </section>
+
+            <section id="feedbackSection" class="feedback-module" style="display: none;">
+                <div id="feedbackContent" class="feedback-banner"></div>
+
+                <div id="explicacaoBox" class="insight-box" style="display: none;">
+                    <div class="insight-header">
+                        <span>🛡️</span> <h4>Análise de Segurança</h4>
+                    </div>
+                    <p id="explicacao" class="insight-text"></p>
+                </div>
+
+                <button id="proximaMensagem" class="btn-next" onclick="proximaMensagem()">
+                    Avançar para o Próximo Cenário →
+                </button>
+            </section>
+
+            <section id="finalSection" class="completion-module" style="display: none;">
+                <div class="trophy">🏆</div>
+                <h2>Simulação Concluída</h2>
+                <div class="final-stats-grid">
+                    <div class="stat-card">
+                        <span>Pontuação Final</span>
+                        <strong id="finalAcertos">0</strong>
+                    </div>
+                    <div class="stat-card primary-card">
+                        <span>Precisão</span>
+                        <strong id="finalPercentual">0%</strong>
+                    </div>
+                </div>
+                <button class="btn-restart" onclick="reiniciarSimulador()">Reiniciar Treinamento</button>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="js/dataLoader.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
