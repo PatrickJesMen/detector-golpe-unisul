@@ -1,6 +1,6 @@
 /* ====================================================
-   MAIN APPLICATION - app.js
-   Controls the interface and integrates all functionalities
+   APLICAÇÃO PRINCIPAL - app.js
+   Controla a interface e integra todas as funcionalidades
    ==================================================== */
 
 let appState = {
@@ -9,34 +9,29 @@ let appState = {
 };
 
 const TOTAL_LOCAL_ROUNDS = 10;
-const TOTAL_AI_ROUNDS = 10;
+const TOTAL_AI_ROUNDS = 5; // Reduzido para 5 para evitar limites de taxa da API
 const MAX_ROUNDS = TOTAL_LOCAL_ROUNDS + TOTAL_AI_ROUNDS;
 
-// Array of distinct themes to force the AI to generate unique scenarios
+// Array de temas distintos para forçar a IA a gerar cenários únicos
 const aiThemes = [
     "Falso prêmio via Pix",
     "Problema de entrega nos Correios",
     "Clonagem de WhatsApp de familiar",
     "Falsa oferta de emprego de meio período",
-    "Aviso urgente do banco sobre conta bloqueada",
-    "Notificação do Serasa ou Receita Federal",
-    "Compra não reconhecida no cartão de crédito",
-    "Promoção impossível de loja famosa",
-    "Contato de suporte técnico pedindo senha",
-    "Atualização de segurança obrigatória"
+    "Aviso urgente do banco sobre conta bloqueada"
 ];
 
 async function iniciarAplicacao() {
     try {
-        console.log('🚀 Starting hybrid system...');
+        console.log('🚀 Iniciando sistema híbrido...');
         await dataLoader.carregar();
 
-        // 1. Load exactly 10 local scenarios
+        // 1. Carrega exatamente 10 cenários locais
         const localMessages = dataLoader.obterMensagens().slice(0, TOTAL_LOCAL_ROUNDS);
         simulador.inicializar(localMessages);
 
-        // 2. Pre-load exactly 10 AI scenarios using the unique themes
-        // Using setTimeout to stagger the requests (1.5s apart) to prevent server/API overload and identical caching
+        // 2. Pré-carrega exatamente 5 cenários da IA usando os temas únicos
+        // Usando setTimeout para espaçar as requisições (1.5s) e evitar sobrecarga na API
         for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
             setTimeout(() => {
                 fetchAIInBackground(aiThemes[i]);
@@ -49,7 +44,7 @@ async function iniciarAplicacao() {
         carregarProximaMensagem();
 
     } catch (error) {
-        console.error('❌ Error during initialization:', error);
+        console.error('❌ Erro durante a inicialização:', error);
         exibirErro('Falha ao carregar a aplicação. Certifique-se de que os arquivos estão corretos.');
     }
 }
@@ -163,7 +158,7 @@ function avaliarMensagem(response) {
         exibirExplicacao(result.explicacao || "");
 
     } catch (error) {
-        console.error('Error evaluating response:', error);
+        console.error('Erro ao avaliar resposta:', error);
     }
 }
 
@@ -212,7 +207,7 @@ function resetarInterfaceResposta() {
     const feedbackContent = document.getElementById('feedbackContent');
     if (feedbackContent) feedbackContent.className = 'feedback-banner';
 
-    // Keep buttons disabled initially for 2 seconds to enforce reading
+    // Mantém os botões desabilitados inicialmente por 2 segundos para forçar a leitura
     desabilitarBotoeResposta();
 }
 
@@ -243,7 +238,7 @@ function atualizarPontuacao() {
 }
 
 function proximaMensagem() {
-    // STRICT LIMIT: If we reached the maximum rounds (20), force end screen.
+    // LIMITE RESTRITO: Se chegamos ao limite (15), forçar a tela final.
     if (simulador.indiceAtual >= MAX_ROUNDS) {
         mostrarTelaDeFim();
         return;
@@ -278,15 +273,15 @@ function mostrarTelaDeFim() {
 }
 
 function reiniciarSimulador() {
-    // Reload page to reset everything perfectly
+    // Recarrega a página para resetar tudo perfeitamente
     window.location.reload();
 }
 
 async function fetchAIInBackground(themeContext) {
     try {
-        console.log(`🤖 Requesting AI scenario with theme: [${themeContext}]`);
+        console.log(`🤖 Solicitando cenário de IA com tema: [${themeContext}]`);
         
-        // Ensure you change this URL to your live Render endpoint!
+        // Garanta que esta URL seja o seu endpoint ativo no Render!
         const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -298,12 +293,12 @@ async function fetchAIInBackground(themeContext) {
             newScenarioJSON.isAI = true;
             
             simulador.mensagensUtilizadas.push(newScenarioJSON);
-            console.log(`✅ Loaded AI Scenario ID ${newScenarioJSON.id} | Theme: ${themeContext}`);
+            console.log(`✅ Cenário IA ID ${newScenarioJSON.id} carregado | Tema: ${themeContext}`);
             
             atualizarPontuacao();
         }
     } catch (error) {
-        console.warn('⚠️ AI service fetch failed:', error);
+        console.warn('⚠️ Falha ao buscar serviço de IA:', error);
     }
 }
 
@@ -311,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
     iniciarAplicacao();
 });
 
-// Expose functions globally for HTML inline event handlers (onclick)
+// Expõe funções globalmente para os manipuladores de eventos HTML (onclick)
 window.avaliarMensagem = avaliarMensagem;
 window.proximaMensagem = proximaMensagem;
 window.reiniciarSimulador = reiniciarSimulador;
