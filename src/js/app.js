@@ -21,6 +21,42 @@ const aiThemes = [
     "Aviso urgente do banco sobre conta bloqueada"
 ];
 
+// Fallbacks locais distintos. Acionados apenas se o servidor Render cair completamente
+// Garante que nunca haverá repetição de mensagens caso a IA falhe 5 vezes.
+const clientSideFallbacks = [
+    {
+        tipo: "email", titulo: "Acesso Bloqueado", remetente: "Segurança Banco",
+        conteudo: "Identificamos um acesso suspeito. Por favor, valide sua identidade clicando no link abaixo.",
+        link: "http://banco-seguranca-verificar.com", classificacao: "golpe",
+        explicacao: "Bancos não enviam links diretos para validação de segurança por e-mail.", nivel: "facil"
+    },
+    {
+        tipo: "whatsapp", titulo: "Oferta Exclusiva", remetente: "Loja Parceira",
+        conteudo: "Você foi selecionado para receber 70% de desconto em qualquer smartphone. Use o cupom VIP70 no link.",
+        link: "http://promocao-celular-vip.net", classificacao: "golpe",
+        explicacao: "Descontos absurdos via mensagens não solicitadas são armadilhas clássicas de phishing.", nivel: "medio"
+    },
+    {
+        tipo: "sms", titulo: "Pacote Pendente", remetente: "Logística Nacional",
+        conteudo: "Seu pacote não pôde ser entregue devido a uma taxa pendente de R$ 15,90. Pague para liberar o envio.",
+        link: "http://pagamento-taxa-envio.com", classificacao: "golpe",
+        explicacao: "Empresas de logística atualizam taxas apenas nos canais oficiais de rastreamento, não por SMS com links aleatórios.", nivel: "facil"
+    },
+    {
+        tipo: "notificacao", titulo: "Alerta de Segurança", remetente: "Sistema",
+        conteudo: "Foi detectada uma tentativa de login num dispositivo desconhecido. Revise as atividades recentes na sua conta.",
+        link: null, classificacao: "legitimo",
+        explicacao: "Avisos de sistema sem links que direcionem você a inserir dados externamente costumam ser legítimos.", nivel: "medio"
+    },
+    {
+        tipo: "rede social", titulo: "Sorteio Vencido", remetente: "Influenciador Digital",
+        conteudo: "Parabéns! Você ganhou o sorteio de um iPhone. Transfira o valor do frete (R$ 50) para a chave PIX enviada abaixo para o envio.",
+        link: null, classificacao: "golpe",
+        explicacao: "Sorteios verdadeiros nunca exigem pagamento de frete ou taxas antecipadas aos vencedores.", nivel: "facil"
+    }
+];
+let fallbackIndex = 0;
+
 async function iniciarAplicacao() {
     try {
         console.log('🚀 Iniciando sistema híbrido...');
@@ -31,7 +67,6 @@ async function iniciarAplicacao() {
         simulador.inicializar(localMessages);
 
         // 2. Busca os cenários da IA de forma ESTRITAMENTE SEQUENCIAL
-        // Isso impede que a API do Google receba múltiplos pedidos ao mesmo tempo (Erro 429)
         carregarIASequencialmente();
 
         appState.isLoaded = true;
@@ -45,12 +80,11 @@ async function iniciarAplicacao() {
     }
 }
 
-// Nova função para garantir que a IA seja chamada uma por vez com intervalo seguro
+// Função para garantir que a IA seja chamada uma por vez com intervalo seguro
 async function carregarIASequencialmente() {
     console.log('⏳ Iniciando fila sequencial de requisições para a IA...');
     
     for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
-        // Aguarda a requisição atual terminar totalmente antes de passar para a próxima
         try {
             await fetchAIInBackground(aiThemes[i]);
         } catch (error) {
@@ -100,7 +134,7 @@ function exibirMensagem(message) {
     if (document.getElementById('tipoMensagem')) document.getElementById('tipoMensagem').textContent = message.tipo;
     if (document.getElementById('titulo')) document.getElementById('titulo').textContent = message.titulo;
     if (document.getElementById('remetente')) document.getElementById('remetente').textContent = message.remetente;
-    if (document.getElementById('conteudo')) document.getElementById('conteudo').textContent = message.conteudo;
+    if (document.getElementById('conteudo')) document.getElementById('conteudo').innerHTML = message.conteudo; // Usando innerHTML para permitir o spinner de loading
 
     const linkContainer = document.getElementById('linkContainer');
     const linkElement = document.getElementById('link');
@@ -225,7 +259,6 @@ function resetarInterfaceResposta() {
     const feedbackContent = document.getElementById('feedbackContent');
     if (feedbackContent) feedbackContent.className = 'feedback-banner';
 
-    // Mantém os botões desabilitados inicialmente por 2 segundos para forçar a leitura
     desabilitarBotoeResposta();
 }
 
@@ -255,6 +288,21 @@ function atualizarPontuacao() {
     if (totalEl) totalEl.textContent = maxDisplayTotal;
 }
 
+function gerarFallbackLocal(reason) {
+    console.warn('⚠️ Acionando fallback local seguro: ', reason);
+    
+    // Puxa um fallback da lista e garante que não se repete ciclicamente
+    const fallbackScenario = clientSideFallbacks[fallbackIndex % clientSideFallbacks.length];
+    fallbackIndex++;
+    
+    simulador.mensagensUtilizadas.push({
+        ...fallbackScenario,
+        id: Math.floor(Math.random() * 9000) + 1000,
+        isAI: true
+    });
+    atualizarPontuacao();
+}
+
 function proximaMensagem() {
     // LIMITE RESTRITO: Se chegamos ao limite, forçar a tela final.
     if (simulador.indiceAtual >= MAX_ROUNDS) {
@@ -264,11 +312,40 @@ function proximaMensagem() {
 
     const hasMore = simulador.indiceAtual < simulador.mensagensUtilizadas.length;
 
+    // NOVO: Resolve o bug de clicar muito rápido!
+    // Se não há mais mensagens na fila (a IA ainda está carregando), mostra um ecrã de espera
     if (!hasMore) {
-        mostrarTelaDeFim();
-    } else {
-        carregarProximaMensagem();
+        document.getElementById('tipoMensagem').textContent = 'sistema';
+        document.getElementById('titulo').textContent = 'Conectando IA...';
+        document.getElementById('remetente').textContent = 'Motor de Segurança';
+        document.getElementById('conteudo').innerHTML = '<i>Sintetizando o próximo cenário. Por favor, aguarde alguns segundos...</i>';
+        
+        const linkContainer = document.getElementById('linkContainer');
+        if (linkContainer) linkContainer.style.display = 'none';
+        
+        desabilitarBotoeResposta();
+        
+        let verificacoes = 0;
+        const checkInterval = setInterval(() => {
+            verificacoes++;
+            
+            // Se a IA carregou com sucesso a mensagem
+            if (simulador.indiceAtual < simulador.mensagensUtilizadas.length) {
+                clearInterval(checkInterval);
+                carregarProximaMensagem();
+            } 
+            // Timeout: Se a IA demorar mais de 15 segundos, força um fallback local e avança
+            else if (verificacoes > 15) {
+                clearInterval(checkInterval);
+                gerarFallbackLocal("Timeout na espera da IA.");
+                carregarProximaMensagem();
+            }
+        }, 1000);
+
+        return;
     }
+
+    carregarProximaMensagem();
 }
 
 function mostrarTelaDeFim() {
@@ -291,7 +368,6 @@ function mostrarTelaDeFim() {
 }
 
 function reiniciarSimulador() {
-    // Recarrega a página para resetar tudo perfeitamente
     window.location.reload();
 }
 
@@ -299,7 +375,6 @@ async function fetchAIInBackground(themeContext) {
     try {
         console.log(`🤖 Solicitando cenário de IA com tema: [${themeContext}]`);
         
-        // Garanta que esta URL seja o seu endpoint ativo no Render!
         const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -317,30 +392,15 @@ async function fetchAIInBackground(themeContext) {
                 
                  atualizarPontuacao();
             } catch (jsonError) {
-                 console.error("Erro ao analisar a resposta JSON do servidor:", jsonError, textResponse);
                  throw new Error("Resposta inválida do servidor.");
             }
         } else {
-            console.error(`Erro na requisição: ${response.status} - ${response.statusText}`);
             throw new Error(`Erro do servidor: ${response.status}`);
         }
     } catch (error) {
         console.warn('⚠️ Falha ao buscar serviço de IA:', error);
-        // Se a requisição falhar (ex: CORS, indisponível), adicionamos um fallback no próprio front-end
-        const fallbackId = Math.floor(Math.random() * 9000) + 1000;
-        simulador.mensagensUtilizadas.push({
-            id: fallbackId,
-            tipo: "notificacao",
-            titulo: "⚠️ Verificação de Segurança (Local)",
-            remetente: "Sistema Unisul",
-            conteudo: "Os serviços de Inteligência Artificial estão indisponíveis. Este é um cenário de teste padrão.",
-            link: null,
-            classificacao: "legitimo",
-            explicacao: "Fallback acionado no cliente devido à indisponibilidade do backend.",
-            nivel: "facil",
-            isAI: true
-        });
-        atualizarPontuacao();
+        // O frontend agora gere os fallbacks de forma segura para não repetir
+        gerarFallbackLocal(error.message);
     }
 }
 
