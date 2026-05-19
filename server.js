@@ -75,13 +75,20 @@ app.post('/', async (req, res) => {
         
         Do NOT wrap the response in markdown blocks (like \`\`\`json). Return raw text only.`;
 
-        // Using gemini-2.5-flash for maximum stability and speed
+        // Using gemini-2.0-flash for maximum stability and widespread availability
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.0-flash',
             contents: prompt,
         });
 
-        let textResponse = response.text().trim();
+        // FIXED: The new @google/genai SDK uses .text as a property, not a function.
+        let textResponse = typeof response.text === 'function' ? response.text() : response.text;
+        
+        if (!textResponse) {
+            throw new Error("AI returned an empty response.");
+        }
+        
+        textResponse = textResponse.trim();
         
         // Clean up any markdown formatting (e.g., ```json ... ```) that the AI might still include
         textResponse = textResponse.replace(/^```json/gi, '').replace(/```$/g, '').trim();
@@ -94,7 +101,7 @@ app.post('/', async (req, res) => {
             parsedJson.isAI = true;
             return res.status(200).json(parsedJson);
         } else {
-            throw new Error("Invalid format received from the AI model.");
+            throw new Error("Invalid format received from the AI model: " + textResponse);
         }
 
     } catch (error) {
