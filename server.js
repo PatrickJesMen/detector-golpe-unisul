@@ -9,9 +9,9 @@ const app = express();
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], credentials: true }));
 app.use(express.json());
 
-// Check if at least one API key is available
+// Verifica se pelo menos uma chave está disponível
 if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
-    console.error("CRITICAL ERROR: Neither GROQ_API_KEY nor GEMINI_API_KEY are set!");
+    console.error("ERRO CRÍTICO: Nenhuma chave (Groq ou Gemini) está definida no ambiente!");
 }
 
 app.get('/', (req, res) => {
@@ -47,11 +47,11 @@ app.post('/', async (req, res) => {
     let iaResponseData = null;
 
     // ========================================================
-    // ATTEMPT 1: GROQ (LLAMA 3) - Extremely Fast
+    // TENTATIVA 1: GROQ (LLAMA 3.1) - Modelo Atualizado e Rápido
     // ========================================================
     try {
         if (process.env.GROQ_API_KEY) {
-            console.log('🔄 Trying Primary AI: Groq (Llama 3)...');
+            console.log('🔄 Tentando IA Primária: Groq (Llama 3.1)...');
             const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -59,7 +59,8 @@ app.post('/', async (req, res) => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: "llama3-8b-8192",
+                    // MODELO ATUALIZADO: Substituindo o descontinuado pelo oficial atual
+                    model: "llama-3.1-8b-instant", 
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0.7
                 })
@@ -69,25 +70,25 @@ app.post('/', async (req, res) => {
             
             if (groqRes.ok && groqData.choices && groqData.choices[0]) {
                 iaResponseData = groqData.choices[0].message.content;
-                console.log('✅ Success with Groq!');
+                console.log('✅ Sucesso com Groq!');
             } else {
-                console.warn('⚠️ Groq Failed. Status:', groqRes.status, 'Error Details:', JSON.stringify(groqData));
+                console.warn('⚠️ Groq Falhou. Status:', groqRes.status, 'Detalhes:', JSON.stringify(groqData));
             }
         } else {
-            console.warn('⚠️ GROQ_API_KEY not configured. Skipping Groq.');
+            console.warn('⚠️ Chave da Groq não configurada no ambiente.');
         }
     } catch (e) {
-        console.warn('⚠️ Groq Network Error:', e.message);
+        console.warn('⚠️ Erro de rede na Groq:', e.message);
     }
 
     // ========================================================
-    // ATTEMPT 2: GEMINI (GOOGLE) - Reliable Fallback
+    // TENTATIVA 2: GEMINI (GOOGLE) - Fallback Seguro
     // ========================================================
     if (!iaResponseData) {
         try {
             if (process.env.GEMINI_API_KEY) {
-                console.log('🔄 Trying Secondary AI: Gemini 1.5 Flash...');
-                // Using raw HTTP fetch instead of SDK to avoid versioning/dependency crashes
+                console.log('🔄 Tentando IA Secundária: Gemini...');
+                
                 const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -101,57 +102,54 @@ app.post('/', async (req, res) => {
                 
                 if (geminiRes.ok && geminiData.candidates && geminiData.candidates[0]) {
                     iaResponseData = geminiData.candidates[0].content.parts[0].text;
-                    console.log('✅ Success with Gemini!');
+                    console.log('✅ Sucesso com Gemini!');
                 } else {
-                    console.warn('⚠️ Gemini Failed. Status:', geminiRes.status, 'Error Details:', JSON.stringify(geminiData));
+                    console.warn('⚠️ Gemini Falhou. Status:', geminiRes.status, 'Detalhes:', JSON.stringify(geminiData));
                 }
             } else {
-                console.warn('⚠️ GEMINI_API_KEY not configured. Skipping Gemini.');
+                console.warn('⚠️ Chave do Gemini não configurada no ambiente.');
             }
         } catch (e) {
-            console.warn('⚠️ Gemini Network Error:', e.message);
+            console.warn('⚠️ Erro de rede no Gemini:', e.message);
         }
     }
 
     // ========================================================
-    // FINAL PROCESSING & PRESENTATION GUARANTEE
+    // PROCESSAMENTO FINAL E GARANTIA DE APRESENTAÇÃO
     // ========================================================
     try {
         if (!iaResponseData) {
-            throw new Error("Both AI services failed or API keys are missing/invalid.");
+            throw new Error("Ambos os serviços de IA falharam ou as chaves estão ausentes.");
         }
 
-        // Clean any potential markdown from the AI output
         let textResponse = iaResponseData.trim();
         textResponse = textResponse.replace(/^```json/gi, '').replace(/```$/g, '').trim();
 
-        // Extract strictly the JSON object
         const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
         
         if (jsonMatch) {
             const parsedJson = JSON.parse(jsonMatch[0]);
             return res.status(200).json(parsedJson);
         } else {
-            throw new Error("Could not parse JSON from AI response: " + textResponse);
+            throw new Error("Não foi possível processar o JSON: " + textResponse);
         }
 
     } catch (error) {
-        console.error("❌ TOTAL AI FAILURE:", error.message);
+        console.error("❌ FALHA TOTAL DA IA:", error.message);
         
-        // ULTIMATE FALLBACK: NEVER break the presentation. Always return a valid scenario.
         return res.status(200).json({
             id: Math.floor(Math.random() * 9000) + 1000,
             tipo: "notificacao",
-            titulo: "Verificação de Segurança",
+            titulo: "Aviso de Sistema",
             remetente: "Sistema Unisul",
-            conteudo: `(Cenário Local) Notamos uma instabilidade nos servidores externos. Por favor, valide o seu acesso na secretaria acadêmica.`,
+            conteudo: `Notamos uma lentidão nas IAs devido a limites de rede. Analise esta mensagem como teste.`,
             link: null,
             classificacao: "legitimo",
-            explicacao: "Cenário de backup ativado. As IAs não conseguiram responder a tempo, mas a simulação continua.",
+            explicacao: "Cenário local ativado automaticamente devido à falha das IAs.",
             nivel: "facil"
         });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Multi-AI API running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Multi-AI API rodando na porta ${PORT}`));
