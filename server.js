@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
     `);
 });
 
-app.post('/api/generate-scenario', async (req, res) => {
+app.post('/', async (req, res) => {
     console.log('🤖 AI Prompt dispatch requested...');
 
     const prompt = `
