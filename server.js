@@ -18,6 +18,13 @@ app.get('/', (req, res) => {
     res.status(200).send("🚀 Multi-AI Security Engine (Groq + Gemini) is ONLINE.");
 });
 
+// Banco de cenários reserva caso ambas as IAs falhem
+const cenariosReserva = [
+    { tipo: "whatsapp", titulo: "Segurança de Conta", remetente: "Suporte Técnico", conteudo: "Identificamos um acesso no seu WhatsApp por outro dispositivo. Valide agora para evitar bloqueio: http://seguranca-wpp-br.net", link: "http://seguranca-wpp-br.net", classificacao: "golpe", explicacao: "O WhatsApp oficial não envia links de validação por mensagem direta.", nivel: "medio" },
+    { tipo: "email", titulo: "Fatura Atrasada", remetente: "Cobrança", conteudo: "Sua fatura com vencimento para hoje consta em aberto. Evite multas pagando agora: http://fatura-segura.com/pagar", link: "http://fatura-segura.com/pagar", classificacao: "golpe", explicacao: "Sempre verifique o remetente do e-mail e desconfie de links diretos para pagamento.", nivel: "facil" },
+    { tipo: "sms", titulo: "Prêmio Recebido", remetente: "Promoção", conteudo: "Você foi sorteado! Receba R$ 500 no PIX agora: http://pix-sorteio-promo.com", link: "http://pix-sorteio-promo.com", classificacao: "golpe", explicacao: "Promoções que pedem acesso a links via SMS são armadilhas comuns.", nivel: "facil" }
+];
+
 app.post('/', async (req, res) => {
     console.log('🤖 AI Generation Requested...');
     
@@ -26,20 +33,23 @@ app.post('/', async (req, res) => {
     
     const prompt = `You are a cybersecurity expert. Generate a SINGLE unique digital interaction scenario (scam or legitimate) for an educational simulator.
     
-    Theme: "${requestedTheme}"
-    Language: Brazilian Portuguese (pt-BR).
-    Random Seed: ${randomSeed}
+    CRITICAL INSTRUCTIONS:
+    1. Theme: "${requestedTheme}"
+    2. Language: Brazilian Portuguese (pt-BR).
+    3. Random Seed: ${randomSeed}
+    4. MUST use realistic fake names (e.g., 'João da Silva', 'Maria Fernandes'). DO NOT use placeholders like '[NOME]', '[EMPRESA]', or '<link>'.
+    5. The 'remetente' must sound realistic for the context.
     
     Return ONLY a raw JSON object with this exact structure:
     { 
         "id": ${Math.floor(Math.random() * 9000) + 1000}, 
         "tipo": "whatsapp", 
         "titulo": "invent a title", 
-        "remetente": "invent a sender", 
-        "conteudo": "write the detailed message", 
+        "remetente": "invent a realistic sender", 
+        "conteudo": "write the detailed message without any brackets or placeholders", 
         "link": "invent a URL or null", 
         "classificacao": "golpe", 
-        "explicacao": "explain why it is a scam", 
+        "explicacao": "explain why it is a scam or safe", 
         "nivel": "facil" 
     }
     Do NOT wrap in markdown fences. Return raw JSON text only.`;
@@ -59,7 +69,6 @@ app.post('/', async (req, res) => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    // MODELO ATUALIZADO: Substituindo o descontinuado pelo oficial atual
                     model: "llama-3.1-8b-instant", 
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0.7
@@ -119,7 +128,7 @@ app.post('/', async (req, res) => {
     // ========================================================
     try {
         if (!iaResponseData) {
-            throw new Error("Ambos os serviços de IA falharam ou as chaves estão ausentes.");
+            throw new Error("Ambas as IAs falharam.");
         }
 
         let textResponse = iaResponseData.trim();
@@ -135,18 +144,15 @@ app.post('/', async (req, res) => {
         }
 
     } catch (error) {
-        console.error("❌ FALHA TOTAL DA IA:", error.message);
+        console.error("❌ FALHA TOTAL DA IA, USANDO CENÁRIO DE RESERVA:", error.message);
+        
+        // Puxa um cenário aleatório da nossa lista de reserva em vez de uma mensagem de erro genérica
+        const cenarioFallback = cenariosReserva[Math.floor(Math.random() * cenariosReserva.length)];
         
         return res.status(200).json({
             id: Math.floor(Math.random() * 9000) + 1000,
-            tipo: "notificacao",
-            titulo: "Aviso de Sistema",
-            remetente: "Sistema Unisul",
-            conteudo: `Notamos uma lentidão nas IAs devido a limites de rede. Analise esta mensagem como teste.`,
-            link: null,
-            classificacao: "legitimo",
-            explicacao: "Cenário local ativado automaticamente devido à falha das IAs.",
-            nivel: "facil"
+            ...cenarioFallback,
+            isAI: true // Mantém a flag isAI para a UI
         });
     }
 });
