@@ -4,38 +4,45 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
 const app = express();
 
+// Configurações de Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Middleware de CORS robusto
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    next();
-});
+// Verificação de segurança da chave
+if (!process.env.GEMINI_API_KEY) {
+    console.error("ERRO CRÍTICO: GEMINI_API_KEY não configurada no Render!");
+}
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-app.options('*', cors());
-
+// Rota para o POST da IA
 app.post('/', async (req, res) => {
-    const prompt = `Gere um cenário de golpe ou legítimo em formato JSON estrito: { "id": 1, "tipo": "email", "titulo": "...", "remetente": "...", "conteudo": "...", "link": null, "classificacao": "golpe", "explicacao": "...", "nivel": "medio" }. Tudo em Português-BR.`;
-
     try {
+        console.log('🤖 Gerando cenário via IA...');
+        
+        const prompt = `Gere um objeto JSON para um simulador de golpes. Formato: { "id": 100, "tipo": "whatsapp", "titulo": "Teste", "remetente": "Suporte", "conteudo": "Teste", "link": null, "classificacao": "golpe", "explicacao": "Explicação breve", "nivel": "facil" }. Use Português-BR. NÃO use markdown, responda apenas o JSON puro.`;
+
         const response = await ai.models.generateContent({
             model: 'gemini-1.5-flash',
             contents: prompt,
         });
 
-        let jsonText = response.text().trim().replace(/^```json/, '').replace(/```$/, '');
-        res.json(JSON.parse(jsonText));
-    } catch (e) {
-        res.status(500).json({ error: "Erro na geração" });
+        // Limpeza robusta da resposta
+        let rawText = response.text().trim();
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '');
+
+        const json = JSON.parse(rawText);
+        res.status(200).json(json);
+
+    } catch (error) {
+        console.error("Erro na geração da IA:", error);
+        // Retornar 500 aqui é o que causa o seu erro, mas agora temos o log no console
+        res.status(500).json({ error: "Erro interno no servidor", details: error.message });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
