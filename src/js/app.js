@@ -30,13 +30,9 @@ async function iniciarAplicacao() {
         const localMessages = dataLoader.obterMensagens().slice(0, TOTAL_LOCAL_ROUNDS);
         simulador.inicializar(localMessages);
 
-        // 2. Pré-carrega exatamente 5 cenários da IA usando os temas únicos
-        // Usando setTimeout para espaçar as requisições (1.5s) e evitar sobrecarga na API
-        for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
-            setTimeout(() => {
-                fetchAIInBackground(aiThemes[i]);
-            }, i * 1500); 
-        }
+        // 2. Busca os cenários da IA de forma ESTRITAMENTE SEQUENCIAL
+        // Isso impede que a API do Google receba múltiplos pedidos ao mesmo tempo (Erro 429)
+        carregarIASequencialmente();
 
         appState.isLoaded = true;
         appState.isRunning = true;
@@ -47,6 +43,24 @@ async function iniciarAplicacao() {
         console.error('❌ Erro durante a inicialização:', error);
         exibirErro('Falha ao carregar a aplicação. Certifique-se de que os arquivos estão corretos.');
     }
+}
+
+// Nova função para garantir que a IA seja chamada uma por vez com intervalo seguro
+async function carregarIASequencialmente() {
+    console.log('⏳ Iniciando fila sequencial de requisições para a IA...');
+    
+    for (let i = 0; i < TOTAL_AI_ROUNDS; i++) {
+        // Aguarda a requisição atual terminar totalmente antes de passar para a próxima
+        await fetchAIInBackground(aiThemes[i]);
+        
+        // Dá um "respiro" obrigatório de 4 segundos para a API esfriar e evitar o bloqueio (Rate Limit)
+        if (i < TOTAL_AI_ROUNDS - 1) {
+            console.log(`⏱️ Aguardando 4 segundos de respiro para a API do Google...`);
+            await new Promise(resolve => setTimeout(resolve, 4000));
+        }
+    }
+    
+    console.log('✅ Fila de IA concluída com sucesso!');
 }
 
 function exibirErro(message) {
@@ -238,7 +252,7 @@ function atualizarPontuacao() {
 }
 
 function proximaMensagem() {
-    // LIMITE RESTRITO: Se chegamos ao limite (15), forçar a tela final.
+    // LIMITE RESTRITO: Se chegamos ao limite, forçar a tela final.
     if (simulador.indiceAtual >= MAX_ROUNDS) {
         mostrarTelaDeFim();
         return;
