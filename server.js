@@ -12,11 +12,21 @@ dotenv.config();
 
 const app = express();
 
+// Substitua o app.use(cors()) atual por este código:
 app.use(cors({
-    origin: '*', // Para testes, vamos liberar tudo. Depois você troca pelo seu link do netlify
-    methods: ['POST', 'GET'],
-    allowedHeaders: ['Content-Type']
+    origin: '*', 
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
+
+// Adicione este middleware de segurança extra antes das rotas
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -35,6 +45,7 @@ app.get('/', (req, res) => {
     `);
 });
 
+app.options('*', cors());
 app.post('/', async (req, res) => {
     console.log('🤖 AI Prompt dispatch requested...');
 
@@ -59,7 +70,7 @@ app.post('/', async (req, res) => {
     Ensure ALL text content (titulo, remetente, conteudo, explicacao) is written strictly in Brazilian Portuguese (PT-BR).
     `;
 
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const modelsToTry = ['gemini-1.5-flash'];
     let responseText = '';
     let success = false;
 
