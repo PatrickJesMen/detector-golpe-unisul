@@ -268,12 +268,14 @@ function reiniciarSimulador() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ========== AI BACKGROUND ENGINE ==========
 async function fetchAIInBackground() {
     try {
         console.log('🤖 Background Engine: Requesting new AI scenario...');
         
-        const response = await fetch('http://localhost:3000/api/generate-scenario', {
+        // Replace this URL with your actual Render URL
+        const renderApiUrl = 'https://detector-golpe-unisul.onrender.com/';
+        
+        const response = await fetch(renderApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
