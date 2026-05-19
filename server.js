@@ -50,24 +50,30 @@ app.post('/', async (req, res) => {
         const requestedTheme = req.body.theme || "random digital scam or legitimate interaction";
         const randomSeed = Math.random().toString(36).substring(7) + Date.now();
 
-        const prompt = `Generate a SINGLE JSON object for a cybersecurity scam simulator. 
-        Theme/Context for this scenario: "${requestedTheme}".
-        Use this random seed to ensure absolute uniqueness and do not repeat previous answers: ${randomSeed}.
+        // REDESIGNED PROMPT: Using placeholders instead of hardcoded examples 
+        // to force the AI to generate completely new text based on the theme.
+        const prompt = `You are a cybersecurity expert. Generate a SINGLE unique digital interaction scenario (scam or legitimate) for an educational simulator.
         
-        Format exactly like this example: 
+        CRITICAL INSTRUCTIONS:
+        1. Theme/Context for this scenario: "${requestedTheme}"
+        2. You MUST invent entirely new, creative content based specifically on this theme. DO NOT repeat standard examples.
+        3. Random seed to enforce absolute uniqueness: ${randomSeed}
+        4. Language: ALL generated text must be in Brazilian Portuguese (pt-BR).
+        
+        Return ONLY a raw JSON object with exactly this structure:
         { 
             "id": ${Math.floor(Math.random() * 9000) + 1000}, 
-            "tipo": "whatsapp", 
-            "titulo": "Account Blocked", 
-            "remetente": "Support Team", 
-            "conteudo": "Your account is blocked. Click here to unlock.", 
-            "link": "http://fake-link-login.com", 
-            "classificacao": "golpe", 
-            "explicacao": "This is a phishing attempt to steal your credentials.", 
-            "nivel": "facil" 
-        }. 
-        The language of the content MUST be Brazilian Portuguese (pt-BR). 
-        Do NOT use markdown blocks, return ONLY the raw JSON string.`;
+            "tipo": "<choose one: whatsapp, email, sms, rede social, notificacao>", 
+            "titulo": "<invent a convincing title or subject>", 
+            "remetente": "<invent a realistic sender name, phone number or email>", 
+            "conteudo": "<write the main message text here, highly detailed and aligned with the theme>", 
+            "link": "<invent a relevant URL (phishing or real), or use null if not applicable>", 
+            "classificacao": "<choose either 'golpe' or 'legitimo'>", 
+            "explicacao": "<write a brief educational explanation of why this is a scam or why it is safe>", 
+            "nivel": "<choose one: facil, medio, dificil>" 
+        }
+        
+        Do NOT wrap the response in markdown blocks (like \`\`\`json). Return raw text only.`;
 
         // Using gemini-2.5-flash for maximum stability and speed
         const response = await ai.models.generateContent({
@@ -77,7 +83,7 @@ app.post('/', async (req, res) => {
 
         let textResponse = response.text().trim();
         
-        // Clean up any markdown formatting (e.g., \`\`\`json ... \`\`\`) that the AI might include
+        // Clean up any markdown formatting (e.g., ```json ... ```) that the AI might still include
         textResponse = textResponse.replace(/^```json/gi, '').replace(/```$/g, '').trim();
 
         // Extract only the JSON object to prevent parsing errors
