@@ -8,23 +8,45 @@ let app = {
     isRunning: false
 };
 
+const TOTAL_LOCAL = 10;
+const TOTAL_IA = 10;
+
 async function iniciarAplicacao() {
     try {
-        console.log('🚀 Starting application...');
         await dataLoader.carregar();
+        simulador.inicializar(dataLoader.obterMensagens().slice(0, TOTAL_LOCAL));
 
-        const messages = dataLoader.obterMensagens();
-        simulador.inicializar(messages);
-
-        app.isLoaded = true;
-        app.isRunning = true;
+        // Pré-carrega 10 da IA sem travar o usuário
+        for(let i = 0; i < TOTAL_IA; i++) {
+            fetchAIInBackground();
+        }
 
         carregarProximaMensagem();
-        fetchAIInBackground();
-
     } catch (error) {
-        console.error('❌ Error during initialization:', error);
-        exibirErro('Falha ao carregar a aplicação. Certifique-se de que o arquivo "mensagens.json" está no diretório correto.');
+        console.error('Erro:', error);
+    }
+}
+
+async function fetchAIInBackground() {
+    try {
+        const response = await fetch('https://detector-golpe-unisul.onrender.com/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            data.isAI = true;
+            simulador.mensagensUtilizadas.push(data);
+            atualizarPontuacao();
+        }
+    } catch (e) { console.warn("IA indisponível"); }
+}
+
+function proximaMensagem() {
+    if (simulador.indiceAtual >= (TOTAL_LOCAL + TOTAL_IA) - 1) {
+        mostrarTelaDeFim();
+    } else {
+        carregarProximaMensagem();
     }
 }
 
