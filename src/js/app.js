@@ -274,11 +274,12 @@ async function fetchAIInBackground() {
         
         // Replace this URL with your actual Render URL
         const renderApiUrl = 'https://detector-golpe-unisul.onrender.com/';
-        
-        const response = await fetch(renderApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
+
+      const response = await fetch(renderApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}) // Adicione um body vazio só para garantir que o POST saia
+      });
 
         if (response.ok) {
             const newScenarioJSON = await response.json();
