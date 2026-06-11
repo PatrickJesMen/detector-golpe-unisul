@@ -282,12 +282,23 @@ function habilitarBotoeResposta() {
 function atualizarPontuacaoVisor(isPostAnswer = false) {
     const acertosEl = document.getElementById('acertos');
     const totalEl = document.getElementById('total');
+    const percentualEl = document.getElementById('percentual'); // Now capturing the Precision element
     
     if (acertosEl) acertosEl.textContent = simulador.acertos;
     
-    // Mostra o total de cenários já disponíveis no array, mas com teto máximo
+    // Shows the total scenarios available in the array, up to MAX_ROUNDS
     const displayTotal = Math.min(simulador.mensagensUtilizadas.length, MAX_ROUNDS);
     if (totalEl) totalEl.textContent = displayTotal;
+
+    // Calculates and updates Precision based on answered questions
+    if (percentualEl) {
+        if (simulador.total > 0) {
+            const percent = Math.round((simulador.acertos / simulador.total) * 100);
+            percentualEl.textContent = percent + '%';
+        } else {
+            percentualEl.textContent = '—'; // Default dash before the first answer
+        }
+    }
 }
 
 function proximaMensagem() {
