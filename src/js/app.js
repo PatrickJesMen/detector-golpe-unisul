@@ -9,19 +9,24 @@ let appState = {
 };
 
 const TOTAL_LOCAL_ROUNDS = 10;
-const TOTAL_AI_ROUNDS = 5;
+// Increased AI rounds to 10
+const TOTAL_AI_ROUNDS = 10;
 const MAX_ROUNDS = TOTAL_LOCAL_ROUNDS + TOTAL_AI_ROUNDS;
 
-// ATUALIZADO: Instruções diretas para a IA mesclar tamanhos (curto/longo) e tipos (legítimo/golpe)
+// Added 5 new themes to reach exactly 10 unique AI requests
 const aiThemes = [
     "Golpe: Falso prêmio via SMS (Texto muito curto e direto)",
     "Legítimo: E-mail da faculdade sobre período de rematrícula (Texto longo e detalhado)",
     "Golpe: Falsa oferta de emprego no WhatsApp (Texto médio)",
     "Legítimo: SMS do banco confirmando um agendamento feito pelo usuário (Texto muito curto)",
-    "Golpe: E-mail de falso suporte técnico com ameaça de bloqueio de conta (Texto longo)"
+    "Golpe: E-mail de falso suporte técnico com ameaça de bloqueio de conta (Texto longo)",
+    "Golpe: WhatsApp de falso familiar pedindo PIX urgente (Texto curto)",
+    "Legítimo: E-mail de confirmação de compra em e-commerce conhecido (Texto médio)",
+    "Golpe: SMS falso dos Correios sobre taxa de liberação de alfândega (Texto curto)",
+    "Legítimo: Notificação do LinkedIn sobre nova vaga na sua área (Texto curto)",
+    "Golpe: E-mail do banco pedindo atualização de token de segurança (Texto longo)"
 ];
 
-// ATUALIZADO: Fallbacks com tamanhos variados e mistura de legítimos e golpes
 const fallbackLocais = [
     { id: 9001, tipo: "email", titulo: "Rematrícula Aberta", remetente: "Secretaria Acadêmica", conteudo: "Olá aluno, informamos que o período de rematrícula para o próximo semestre letivo já está aberto. Por favor, acesse o portal do aluno pelo aplicativo oficial da instituição para conferir as disciplinas e realizar a confirmação da sua grade. O prazo se encerra no dia 30. Em caso de dúvidas, procure a coordenação.", link: null, classificacao: "legitimo", explicacao: "Comunicações oficiais sem links externos diretos para login e que orientam o uso do app oficial são legítimas.", nivel: "facil", isAI: true },
     { id: 9002, tipo: "sms", titulo: "Pacote Retido", remetente: "Entregas BR", conteudo: "Seu pacote foi retido. Pague a taxa: http://libera-pacote-br.com", link: "http://libera-pacote-br.com", classificacao: "golpe", explicacao: "Correios e transportadoras não enviam links suspeitos por SMS para pagamento imediato.", nivel: "facil", isAI: true },
@@ -275,7 +280,7 @@ function atualizarPontuacaoVisor(isPostAnswer = false) {
     
     if (acertosEl) acertosEl.textContent = simulador.acertos;
     
-    // Mostra o total de cenários já disponíveis no array, mas com teto máximo de 15
+    // Mostra o total de cenários já disponíveis no array, mas com teto máximo
     const displayTotal = Math.min(simulador.mensagensUtilizadas.length, MAX_ROUNDS);
     if (totalEl) totalEl.textContent = displayTotal;
 }
@@ -315,7 +320,9 @@ function reiniciarSimulador() {
 
 document.addEventListener('DOMContentLoaded', iniciarAplicacao);
 
-// Expose functions globally
+// Expose functions globally for index.html to access
 window.avaliarMensagem = avaliarMensagem;
 window.proximaMensagem = proximaMensagem;
 window.reiniciarSimulador = reiniciarSimulador;
+window.exibirMensagem = exibirMensagem;
+window.MAX_ROUNDS = MAX_ROUNDS;
