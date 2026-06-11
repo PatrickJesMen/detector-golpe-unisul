@@ -143,6 +143,11 @@ function mostrarCarregamentoIA() {
 }
 
 function exibirMensagem(message) {
+    // Clean up AI placeholders before displaying
+    if (message.conteudo) {
+        message.conteudo = message.conteudo.replace(/\[\s*(nome|name|seu nome|cliente|usuário|usuario)\s*\]/gi, "Cliente");
+    }
+
     if (document.getElementById('tipoMensagem')) document.getElementById('tipoMensagem').textContent = message.tipo;
     if (document.getElementById('titulo')) document.getElementById('titulo').textContent = message.titulo;
     if (document.getElementById('remetente')) document.getElementById('remetente').textContent = message.remetente;
