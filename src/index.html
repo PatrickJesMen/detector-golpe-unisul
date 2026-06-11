@@ -14,9 +14,7 @@
 <body>
     <div class="main-app-container">
 
-        <!-- ── BARRA DE CONTROLES ──────────────────── -->
         <div class="controls-bar">
-            <!-- Reduzir fonte -->
             <div class="tooltip-container">
                 <button class="ctrl-btn" onclick="adjustFontSize(-1)" aria-label="Diminuir tamanho da fonte">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -29,7 +27,6 @@
                 <span class="tooltip">Diminuir texto</span>
             </div>
 
-            <!-- Aumentar fonte -->
             <div class="tooltip-container">
                 <button class="ctrl-btn" onclick="adjustFontSize(1)" aria-label="Aumentar tamanho da fonte">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -42,7 +39,6 @@
                 <span class="tooltip">Aumentar texto</span>
             </div>
 
-            <!-- Dark/Light mode -->
             <div class="tooltip-container">
                 <button class="ctrl-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Alternar modo escuro">
                     <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -54,7 +50,6 @@
             </div>
         </div>
 
-        <!-- ── HEADER PRINCIPAL ───────────────────── -->
         <header class="global-header">
             <div class="header-top-row">
                 <span class="system-badge">Módulo de Simulação</span>
@@ -66,7 +61,6 @@
             <p class="header-subtitle">Treine sua percepção contra golpes digitais</p>
         </header>
 
-        <!-- ── ESTATÍSTICAS ───────────────────────── -->
         <section class="live-stats-bar" aria-label="Pontuação atual">
             <div class="stat-block">
                 <div class="stat-block-inner">
@@ -88,7 +82,6 @@
             </div>
         </section>
 
-        <!-- Barra de progresso + contador -->
         <div style="display:flex; flex-direction:column; gap:0.5rem;">
             <div class="scenario-counter">
                 <span class="scenario-label" id="scenarioLabel">Cenário 0 de 20</span>
@@ -99,14 +92,12 @@
             </div>
         </div>
 
-        <!-- ── SIMULADOR ──────────────────────────── -->
         <main class="simulator-engine">
             
             <div class="meta-data-layer">
                 <span id="tipoMensagem" class="hidden-sys-type"></span>
             </div>
 
-            <!-- Dispositivo simulado -->
             <article class="device-viewport" id="deviceViewport">
                 
                 <div class="os-status-bar">
@@ -155,7 +146,6 @@
                         <div class="message-bubble">
                             <p id="conteudo" class="message-text-content">O conteúdo da mensagem aparecerá aqui...</p>
                             
-                            <!-- Link inline — sem caixa cinza -->
                             <div id="linkContainer" class="attachment-link-box" style="display: none;">
                                 <a id="link" href="#" target="_blank" rel="noopener noreferrer" class="parsed-url"></a>
                             </div>
@@ -166,7 +156,6 @@
                 </div>
             </article>
 
-            <!-- ── PAINEL DE DECISÃO ──────────────── -->
             <section class="decision-panel">
                 <h3>Classifique esta mensagem</h3>
                 
@@ -182,7 +171,6 @@
                 </div>
             </section>
 
-            <!-- ── FEEDBACK ───────────────────────── -->
             <section id="feedbackSection" class="feedback-module" style="display: none;" aria-live="polite">
                 <div id="feedbackContent" class="feedback-banner"></div>
 
@@ -199,7 +187,6 @@
                 </button>
             </section>
 
-            <!-- ── TELA FINAL ─────────────────────── -->
             <section id="finalSection" class="completion-module" style="display: none;" aria-live="polite">
                 <div class="trophy">🏆</div>
                 <h2>Simulação Concluída!</h2>
@@ -313,7 +300,8 @@
 
         if (!fill || typeof simulador === 'undefined') return;
 
-        const total = simulador.mensagensUtilizadas.length || 20;
+        // Uses window.MAX_ROUNDS explicitly exported from app.js
+        const total = window.MAX_ROUNDS || 20;
         const current = simulador.indiceAtual || 0;
         const pct = total > 0 ? (current / total) * 100 : 0;
 
