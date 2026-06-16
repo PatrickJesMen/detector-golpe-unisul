@@ -40,7 +40,15 @@ async function iniciarAplicacao() {
         console.log('🚀 Starting System...');
         await dataLoader.carregar();
 
-        const localMessages = dataLoader.obterMensagens().slice(0, TOTAL_LOCAL_ROUNDS);
+        // 1. Obtém a lista completa do banco de mensagens
+        const todasMensagens = dataLoader.obterMensagens();
+        
+        // 2. Embaralha TODAS as mensagens disponíveis antes de cortar
+        const mensagensEmbaralhadas = simulador.embaralhar([...todasMensagens]);
+        
+        // 3. Pega 10 mensagens do array que agora está em ordem aleatória
+        const localMessages = mensagensEmbaralhadas.slice(0, TOTAL_LOCAL_ROUNDS);
+        
         simulador.inicializar(localMessages);
 
         appState.isLoaded = true;
